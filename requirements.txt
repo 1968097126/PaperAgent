@@ -11,4 +11,6 @@ sentence-transformers>=3.0.0   # 一个库搞定两件事：
                                 #   2) CrossEncoder("BAAI/bge-reranker-base") 做精排阶段的Cross-Encoder重排序
 rank-bm25>=0.2.2           # BM25稀疏检索：纯Python实现，BM25Okapi(tokenized_corpus).get_scores(query_tokens)
 jieba>=0.42.1               # 中文分词器：语料库若含中文标题/摘要，BM25分词前先用jieba切词（英文部分用简单正则切分即可）
-pdfplumber>=0.11.0          # Phase 1 补充：从下载下来的论文PDF里提取正文纯文本，供chunking用
+pymupdf>=1.24.0             # 从下载下来的论文PDF里提取正文纯文本，按block坐标处理双栏排版乱序问题
+                             # （最初用的是pdfplumber，逐字符提取在双栏论文上信号太脏，换成PyMuPDF的
+                             #  block级提取后一并解决了双栏乱序和单词粘连两个问题，见build_corpus.py）

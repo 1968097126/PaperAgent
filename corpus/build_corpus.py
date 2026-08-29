@@ -4,7 +4,7 @@
 产出（供 retrieval/chunking.py 在下一步消费）：
     corpus/papers_meta.jsonl   每行一个 JSON 对象：{paper_id, title, authors, abstract, published, pdf_url}
     corpus/papers/pdf/<id>.pdf   原始 PDF（保留一份，方便人工核对/以后换更好的PDF解析器重新提取）
-    corpus/papers/text/<id>.txt  pdfplumber 提取出的正文纯文本
+    corpus/papers/text/<id>.txt  PyMuPDF 提取出的正文纯文本
 
 用法：
     python corpus/build_corpus.py
@@ -17,6 +17,7 @@ from __future__ import annotations
 import re
 import json
 import time
+import unicodedata               # 把PDF里的连字符Unicode字形（如"ﬁ"）规范化回普通字母组合
 import xml.etree.ElementTree as ET   # 标准库自带的XML解析器，用来解析 arXiv 返回的 Atom feed
 from pathlib import Path
 
@@ -121,35 +122,97 @@ def download_pdf(url: str, dest_path: Path) -> None:
     dest_path.write_bytes(resp.content)
 
 
-def extract_text_from_pdf(pdf_path: Path) -> str:
-    """用 pdfplumber 把PDF逐页转成纯文本，页与页之间用换行分隔。
+def _classify_block(block: tuple, mid_x: float, tolerance: float = 5.0) -> str:
+    """判断一个PyMuPDF文本块相对页面竖直中线落在"左栏"/"右栏"/"通栏"中的哪一种。
 
-    x_tolerance=2：pdfplumber判断"两个相邻字符之间的水平间距要多宽，才认为
-    它们之间应该插入一个空格"的阈值，默认值是3。用默认值实测发现相当一部分
-    论文（这批语料库里大概2/3）会把整句话的空格全部吃掉，变成
-    "descriptionofexplorationratherthanaformalclassification"这种连成一片
-    的长字符串——这是部分PDF生成工具导出的字体间距比默认阈值更紧凑导致的。
-    调小到2之后，实测同一批论文里"连续25个以上字母粘在一起"的可疑长词
-    从每篇几百个降到个位数，且没有明显增加"单词被拆成单字母碎片"的新问题
-    （对比测试过x_tolerance=1，那样虽然能修复个别顽固文件，但会让其它本来
-    正常的文件出现更多过度切分，属于"改好一个坏一片"，不划算，所以选2作为折中）。
-    残留的极少数长词是已知局限，不再进一步调参数解决。
-
-    另一个已知局限（同样是MVP阶段的合理取舍）：论文常见的双栏排版下，
-    pdfplumber有时会把左右两栏文字的阅读顺序穿插打乱。曾尝试过"整页对半裁开
-    分别提取"和"按字符x坐标密度探测是否双栏"两种方案，但实测发现语料库里
-    双栏页和单栏页在这个密度指标上的取值区间有明显重叠，做自动判断反而有把
-    正常单栏页面裁坏的风险，所以没有采纳，维持默认整页提取。
+    block 是 page.get_text("blocks") 返回的 (x0, y0, x1, y1, text, block_no, block_type) 元组。
+    整个块的右边界(x1)在中线左侧 -> 左栏；左边界(x0)在中线右侧 -> 右栏；
+    横跨中线（比如标题、单栏排版的图注）-> 通栏。tolerance给5pt的容差，
+    避免因为字号/行末标点导致的几像素误差被误判成"跨栏"。
     """
-    import pdfplumber   # 延迟到函数内部import：这个函数只有真正提取文本时才需要pdfplumber，
-                         # 避免脚本一启动（比如只是调用 fetch_arxiv_metadata 做测试时）就强制要求它已安装
+    x0, x1 = block[0], block[2]
+    if x1 <= mid_x + tolerance:
+        return "left"
+    if x0 >= mid_x - tolerance:
+        return "right"
+    return "full"
 
-    pages_text = []
-    with pdfplumber.open(pdf_path) as pdf:   # with语句：无论提取成功与否，退出时都会自动关闭文件句柄
-        for page in pdf.pages:
-            text = page.extract_text(x_tolerance=2) or ""   # 少数页面（纯图片页）会返回None，兜底成空字符串
-            pages_text.append(text)
-    return "\n".join(pages_text)
+
+def _order_page_text(page) -> str:
+    """把PyMuPDF一页里的文本块按"正确阅读顺序"重排后拼成文本。
+
+    PyMuPDF按内部顺序输出的文本块基本是从上到下，但双栏论文里同一水平区间
+    左右两栏的块会紧挨着出现在列表里——如果照单全收直接拼接，两栏内容会像
+    "左栏第1句 右栏第1句 左栏第2句 右栏第2句"这样交叉穿插，读起来语序错乱
+    （这正是本文件早期版本用pdfplumber逐字符提取时遇到的问题，且当时试过两种
+    自动检测方案都因信号不可靠而放弃）。
+
+    做法：先按y0（从上到下）把所有文字块排好序，然后扫描一遍——连续出现的
+    "左栏/右栏"块先收集成一个"分栏区"(band)，一旦遇到"通栏"块（标题、单栏图注等）
+    就把之前收集的分栏区结算掉。每个分栏区内部按"通栏 -> 左栏从上到下 -> 右栏从上到下"
+    的顺序重新拼接，而不是保留它们在原始列表里穿插的顺序。单栏页面会退化成
+    全部落在"左栏"或"通栏"分类里，顺序和不做任何处理时一致，不受影响。
+    """
+    blocks = page.get_text("blocks")
+    mid_x = page.rect.width / 2
+
+    # block_type==0是文字块（1是图片块，没有文字内容，直接跳过）；
+    # 按y0排序确保band切分时是按页面自然的从上到下顺序扫描
+    text_blocks = sorted(
+        (b for b in blocks if b[6] == 0 and b[4].strip()),
+        key=lambda b: b[1],
+    )
+
+    bands: list[list[tuple[str, tuple]]] = []
+    current: list[tuple[str, tuple]] = []
+    for b in text_blocks:
+        cls = _classify_block(b, mid_x)
+        if cls == "full":
+            if current:
+                bands.append(current)
+                current = []
+            bands.append([("full", b)])
+        else:
+            current.append((cls, b))
+    if current:
+        bands.append(current)
+
+    lines = []
+    for band in bands:
+        # 依次取出这个band里的通栏块、左栏块、右栏块——用固定顺序('full','left','right')
+        # 遍历一次band，而不是三次单独过滤，是为了保持"同一类别内部"原有的y顺序不被打乱
+        for wanted in ("full", "left", "right"):
+            for cls, b in band:
+                if cls == wanted:
+                    lines.append(b[4])
+    return "\n".join(lines)
+
+
+def extract_text_from_pdf(pdf_path: Path) -> str:
+    """用 PyMuPDF 把PDF逐页转成纯文本，双栏排版按"左栏后右栏"重排，页与页之间用换行分隔。
+
+    早期版本用pdfplumber逐字符提取，暴露过两个问题：默认参数会把大量单词间的
+    空格吃掉（曾经手调x_tolerance缓解，但残留个位数问题），以及双栏论文阅读顺序
+    被打乱且找不到可靠的自动检测方案。换成PyMuPDF按"文本块"（block，通常对应
+    一个自然段，自带位置信息）而不是逐字符提取和排序后，两个问题一并解决：
+    单词间距由PyMuPDF自己的规则处理（实测这批语料库里"25字符以上疑似粘连长词"
+    从每篇几百个降到0），块级坐标做左右栏分类也比之前在字符/物理行粒度上做
+    双栏检测的信号干净得多——因为一个text block基本就是一个完整段落，
+    不会像单个字符或物理行那样被页面顶部的通栏标题稀释掉分类信号。
+
+    unicodedata.normalize("NFKC", ...)：PyMuPDF会保留PDF里的连字符(ligature)
+    Unicode字形，比如"field"如果在PDF里用了印刷连字符，"fi"会被编码成
+    U+FB01这一个字符而不是"f"+"i"两个字符。NFKC规范化把这类连字符拆回普通
+    ASCII字母组合，否则后面BM25分词器（正则只匹配a-zA-Z）会把整个含连字符的
+    单词当噪音丢掉，看起来像少了个词。
+    """
+    import pymupdf   # 延迟到函数内部import：这个函数只有真正提取文本时才需要pymupdf，
+                      # 避免脚本一启动（比如只是调用 fetch_arxiv_metadata 做测试时）就强制要求它已安装
+
+    doc = pymupdf.open(pdf_path)
+    pages_text = [_order_page_text(page) for page in doc]
+    doc.close()   # PyMuPDF的Document不支持with语句自动关闭，需要手动close释放底层文件句柄
+    return unicodedata.normalize("NFKC", "\n".join(pages_text))
 
 
 def main() -> None:
