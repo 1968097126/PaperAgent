@@ -103,6 +103,53 @@ TOOL_SCHEMAS = [
         },
     },
     {
+        "name": "search_papers",
+        "description": (
+            "在论文语料库中检索与查询最相关的证据片段。内部执行\"稠密检索(BGE-M3)+"
+            "稀疏检索(BM25)召回 -> RRF融合排序 -> Cross-Encoder精排\"完整三阶段流程，"
+            "返回排好序的证据片段及来源（论文标题、章节、chunk_id）。"
+            "query必须是独立、脱离对话上下文也能理解的完整问题——如果用户原话包含"
+            "代词或指代（如'这篇论文'、'刚才提到的方法'），请先把它改写成完整问题"
+            "再调用本工具。"
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "独立完整的检索查询，不含未消解的代词或指代",
+                },
+                "top_k": {
+                    "type": "integer",
+                    "description": "返回的证据片段数量，默认5",
+                },
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "retrieve_chunk",
+        "description": (
+            "按chunk_id取回某个证据片段的完整内容，并带上同一篇论文里前后相邻的"
+            "chunk扩展上下文。用于search_papers返回的证据片段因为分块边界切得不巧、"
+            "需要看更完整上下文的场景，不用于首次检索。"
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "chunk_id": {
+                    "type": "string",
+                    "description": "search_papers返回结果里的chunk_id",
+                },
+                "context": {
+                    "type": "integer",
+                    "description": "在目标chunk前后各扩展几个相邻chunk，默认1",
+                },
+            },
+            "required": ["chunk_id"],
+        },
+    },
+    {
         "name": "WebFetch",
         "description": "Fetch a URL and return its text content (HTML stripped).",
         "input_schema": {
@@ -338,6 +385,46 @@ def _websearch(query: str) -> str:
         return f"Error: {e}"
 
 
+def _search_papers(query: str, top_k: int = 5) -> str:
+    # 延迟到函数内部import：retrieval.hybrid_search会一路引入sentence-transformers/faiss/
+    # torch这些重依赖，只有真正调用search_papers时才需要，避免只用编程工具（Read/Bash等）
+    # 的场景也被迫加载这些重量级的检索栈——和下面_webfetch里"函数内部import httpx"是同一个理由
+    from retrieval.hybrid_search import search_papers
+
+    query = (query or "").strip()
+    if not query:
+        return "Error: query is empty"
+
+    results = search_papers(query, top_k=top_k)
+    if not results:
+        return "(no relevant chunks found)"
+
+    lines = []
+    for i, r in enumerate(results):
+        lines.append(
+            f"[{i+1}] paper={r['title']} section={r['section']} "
+            f"chunk_id={r['chunk_id']} score={r['score']:.3f}\n{r['text']}\n"
+        )
+    return "\n".join(lines)
+
+
+def _search_papers_tool(params: dict, config: dict) -> str:
+    return _search_papers(params.get("query", ""), top_k=params.get("top_k", 5))
+
+
+def _retrieve_chunk_tool(params: dict, config: dict) -> str:
+    from retrieval.hybrid_search import retrieve_chunk
+
+    chunk_id = (params.get("chunk_id") or "").strip()
+    if not chunk_id:
+        return "Error: chunk_id is empty"
+
+    result = retrieve_chunk(chunk_id, context=params.get("context", 1))
+    if result is None:
+        return f"Error: chunk_id '{chunk_id}' not found"
+    return f"paper={result['title']} section={result['section']}\n{result['text']}"
+
+
 # ── Dispatcher (backward-compatible wrapper) ──────────────────────────────
 
 def execute_tool(
@@ -378,10 +465,16 @@ def execute_tool(
 # ── Register built-in tools with the plugin registry ─────────────────────
 
 def _register_builtins() -> None:
-    """Register all 8 built-in tools into the central registry."""
+    """Register all built-in tools into the central registry."""
+    # 按name查schema，而不是像早期版本那样写死TOOL_SCHEMAS[0]/[1]/...这类位置下标——
+    # Phase 0清理过一次因为在TOOL_SCHEMAS列表中间插入了新条目、把后面所有下标顶歪导致
+    # import直接崩溃的bug，根源就是这种"表的顺序和下标一一对应"的脆弱写法。这里用一个
+    # {name: schema}的字典按名字查，往TOOL_SCHEMAS任何位置插入新工具都不会影响其它工具。
+    schema_by_name = {s["name"]: s for s in TOOL_SCHEMAS}
+
     # 每个 ToolDef = 一个工具的"登记条目"：
     #   name    : 工具名（模型调用时用的名字）
-    #   schema  : 工具声明（TOOL_SCHEMAS 里的某个，发给模型描述参数）
+    #   schema  : 工具声明（发给模型描述参数）
     #   func    : 真正执行的函数。lambda p, c = 小函数，(p=参数字典, c=config)
     #   lambda  : 匿名函数，p 是模型传来的参数字典，c 是 config
     #             **p 把参数字典解包成关键字参数，如 _read(**p) → _read(file_path=..., limit=...)
@@ -389,42 +482,42 @@ def _register_builtins() -> None:
     _tool_defs = [
         ToolDef(
             name="Read",
-            schema=TOOL_SCHEMAS[0],
+            schema=schema_by_name["Read"],
             func=lambda p, c: _read(**p),  # 参数解包传给 _read(file_path, limit, offset)
             read_only=True,                # 只读
             concurrent_safe=True,
         ),
         ToolDef(
             name="Write",
-            schema=TOOL_SCHEMAS[1],
+            schema=schema_by_name["Write"],
             func=lambda p, c: _write(**p),  # 写文件，会修改磁盘
-            read_only=False,              
+            read_only=False,
             concurrent_safe=False,
         ),
         ToolDef(
             name="Edit",
-            schema=TOOL_SCHEMAS[2],
+            schema=schema_by_name["Edit"],
             func=lambda p, c: _edit(**p),  # 编辑文件，会修改磁盘
             read_only=False,
             concurrent_safe=False,
         ),
         ToolDef(
             name="Bash",
-            schema=TOOL_SCHEMAS[3],
+            schema=schema_by_name["Bash"],
             func=lambda p, c: _bash(p["command"], p.get("timeout", 30)),  # 手动取参数（含默认值）
             read_only=False,  # 执行命令有副作用
             concurrent_safe=False,
         ),
         ToolDef(
             name="Glob",
-            schema=TOOL_SCHEMAS[4],
+            schema=schema_by_name["Glob"],
             func=lambda p, c: _glob(p["pattern"], p.get("path")),  # 查找文件，只读
             read_only=True,
             concurrent_safe=True,
         ),
         ToolDef(
             name="Grep",
-            schema=TOOL_SCHEMAS[5],
+            schema=schema_by_name["Grep"],
             func=lambda p, c: _grep(  # 多参数：逐个用 p.get() 取，带默认值
                 p["pattern"], p.get("path"), p.get("glob"),
                 p.get("output_mode", "files_with_matches"),
@@ -435,15 +528,29 @@ def _register_builtins() -> None:
             concurrent_safe=True,
         ),
         ToolDef(
+            name="search_papers",
+            schema=schema_by_name["search_papers"],
+            func=_search_papers_tool,
+            read_only=True,        # 只读检索，不修改任何状态
+            concurrent_safe=True,  # 检索本身无副作用，可以和别的工具并行跑
+        ),
+        ToolDef(
+            name="retrieve_chunk",
+            schema=schema_by_name["retrieve_chunk"],
+            func=_retrieve_chunk_tool,
+            read_only=True,
+            concurrent_safe=True,
+        ),
+        ToolDef(
             name="WebFetch",
-            schema=TOOL_SCHEMAS[6],
+            schema=schema_by_name["WebFetch"],
             func=lambda p, c: _webfetch(p["url"], p.get("prompt")),  # 抓网页，只读
             read_only=True,
             concurrent_safe=True,
         ),
         ToolDef(
             name="WebSearch",
-            schema=TOOL_SCHEMAS[7],
+            schema=schema_by_name["WebSearch"],
             func=lambda p, c: _websearch(p["query"]),  # 网页搜索，只读
             read_only=True,
             concurrent_safe=True,

@@ -1,9 +1,9 @@
-"""Phase 1：用 BGE-M3 把chunk编码成稠密向量，用FAISS建索引（"分块-召回-精排"里的"召回"半边）。
+"""用 BGE-M3 把chunk编码成稠密向量，用FAISS建索引和检索（"分块-召回-精排"里的"召回"半边）。
 
-本文件职责边界：只负责"离线建索引"和"把索引读回内存"。
-真正拿一个query去检索最相似chunk的逻辑（dense_search），留到 Phase 2 和
-BM25召回、RRF融合、Cross-Encoder精排一起实现，那时候会复用这里的 get_model() /
-embed_texts() / load_dense_index()，不需要重新写模型加载和索引读取的代码。
+Phase 1 实现了离线建索引（build_dense_index）和索引读取（load_dense_index）；
+Phase 2 在此基础上加了 search_dense()——真正拿一个query去检索最相似chunk的
+查询接口，复用同一套 get_model() / embed_texts() 编码逻辑，保证query向量和
+建索引时chunk向量落在同一个向量空间里（这是能够比较相似度的前提）。
 """
 from __future__ import annotations
 
@@ -97,6 +97,32 @@ def load_dense_index() -> tuple[faiss.Index, list[str]]:
     index = faiss.read_index(str(INDEX_PATH))
     chunk_ids = json.loads(IDS_PATH.read_text(encoding="utf-8"))
     return index, chunk_ids
+
+
+def search_dense(query: str, top_k: int = 20) -> list[tuple[str, float]]:
+    """稠密检索：把query编码成向量，去FAISS索引里找最相似的top_k个chunk。
+
+    Args:
+        query: 查询文本（应是独立完整的问题，指代消解在更上游的NLU阶段做）
+        top_k: 返回多少个候选
+    Returns:
+        [(chunk_id, score), ...]，按相似度从高到低排序。score就是FAISS返回的内积值，
+        因为embed_texts()和build_dense_index()两边的向量都做过归一化，内积在数值上
+        等价于余弦相似度，理论范围是[-1, 1]，语义相关的学术文本通常落在0.3~0.8之间。
+    """
+    index, chunk_ids = load_dense_index()
+    query_vec = embed_texts([query])   # 形状(1, D)，复用建索引时同一套编码逻辑，保证向量空间一致
+
+    # faiss的search()是批量接口：输入N个query一次性检索，这里只有1个query，
+    # 所以返回的scores/idxs形状都是(1, top_k)，取第0行拿到这一个query的结果
+    scores, idxs = index.search(query_vec, top_k)
+
+    results = []
+    for score, idx in zip(scores[0], idxs[0]):
+        if idx == -1:   # 索引里实际数据不足top_k条时，faiss用-1填充占位，要过滤掉
+            continue
+        results.append((chunk_ids[idx], float(score)))
+    return results
 
 
 if __name__ == "__main__":
