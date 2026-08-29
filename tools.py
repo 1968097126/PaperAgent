@@ -143,14 +143,19 @@ _SAFE_PREFIXES = (
 
 def _is_safe_bash(cmd: str) -> bool:
     c = cmd.strip()
+    # any:一个为真就返回真
     return any(c.startswith(p) for p in _SAFE_PREFIXES)
 
 
 # ── Diff helpers ──────────────────────────────────────────────────────────
-
+# diff辅助函数，当工具修改文件后生成对比文本
 def generate_unified_diff(old, new, filename, context_lines=3):
-    old_lines = old.splitlines(keepends=True)
+    old_lines = old.splitlines(keepends=True)  # 保留每行末尾换行符
     new_lines = new.splitlines(keepends=True)
+    # unified_diff(旧行, 新行, ...) 对比两串行，产出 git diff 那种格式的差异
+    # fromfile / tofile：显示在 diff 头部，标明"这是改前(a/)和改后(b/)的哪个文件"
+    # n=context_lines：每个差异块上下各保留几行上下文（默认 3，和 git 默认一致）
+    # unified_diff 返回一个生成器（逐行产出）
     diff = difflib.unified_diff(old_lines, new_lines,
         fromfile=f"a/{filename}", tofile=f"b/{filename}", n=context_lines)
     return "".join(diff)
@@ -173,12 +178,12 @@ def _read(file_path: str, limit: int = None, offset: int = None) -> str:
     if p.is_dir():
         return f"Error: {file_path} is a directory"
     try:
-        lines = p.read_text(errors="replace").splitlines(keepends=True)
+        lines = p.read_text(errors="replace").splitlines(keepends=True)  # 按换行符拆成行
         start = offset or 0
-        chunk = lines[start:start + limit] if limit else lines[start:]
+        chunk = lines[start:start + limit] if limit else lines[start:] # [a,b]:左闭右开
         if not chunk:
             return "(empty file)"
-        return "".join(f"{start + i + 1}\t{l}" for i, l in enumerate(chunk))
+        return "".join(f"{start + i + 1}\t{l}" for i, l in enumerate(chunk)) # 给每行加上行号，制表符分隔
     except Exception as e:
         return f"Error: {e}"
 
@@ -241,12 +246,13 @@ def _bash(command: str, timeout: int = 30) -> str:
 
 
 def _glob(pattern: str, path: str = None) -> str:
-    base = Path(path) if path else Path.cwd()
+    # 用 glob 模式查找文件（如 *.py、**/*.py）
+    base = Path(path) if path else Path.cwd()   # 基准目录：给了 path 用它，否则用当前目录
     try:
-        matches = sorted(base.glob(pattern))
-        if not matches:
+        matches = sorted(base.glob(pattern))    # glob(pattern) 查找匹配文件，sorted 排序
+        if not matches:                          # 空列表（没匹配到任何文件）
             return "No files matched"
-        return "\n".join(str(m) for m in matches[:500])
+        return "\n".join(str(m) for m in matches[:500])  # Path 转字符串，最多 500 个，换行拼接
     except Exception as e:
         return f"Error: {e}"
 
@@ -287,22 +293,23 @@ def _grep(pattern: str, path: str = None, glob: str = None,
 
 
 def _webfetch(url: str, prompt: str = None) -> str:
+    # 抓取网页并转成纯文本（剥掉 HTML 标签），最多返回前 25000 字符
     try:
         import httpx
-        r = httpx.get(url, headers={"User-Agent": "NanoClaude/1.0"},
-                      timeout=30, follow_redirects=True)
-        r.raise_for_status()
-        ct = r.headers.get("content-type", "")
-        if "html" in ct:
+        r = httpx.get(url, headers={"User-Agent": "NanoClaude/1.0"},  # 伪装浏览器 UA
+                      timeout=30, follow_redirects=True)              # 30s 超时，自动跟随跳转
+        r.raise_for_status()  # 状态码非 2xx（如 404/500）就抛异常
+        ct = r.headers.get("content-type", "")  # 读响应头，判断返回类型
+        if "html" in ct:  # 是 HTML → 剥离标签，提取纯文本
             text = re.sub(r"<script[^>]*>.*?</script>", "", r.text,
-                          flags=re.DOTALL | re.IGNORECASE)
+                          flags=re.DOTALL | re.IGNORECASE)  # ① 删掉 script 块（跨行+忽略大小写）
             text = re.sub(r"<style[^>]*>.*?</style>", "", text,
-                          flags=re.DOTALL | re.IGNORECASE)
-            text = re.sub(r"<[^>]+>", " ", text)
-            text = re.sub(r"\s+", " ", text).strip()
+                          flags=re.DOTALL | re.IGNORECASE)  # ② 删掉 style 块
+            text = re.sub(r"<[^>]+>", " ", text)            # ③ 删掉所有剩余 HTML 标签
+            text = re.sub(r"\s+", " ", text).strip()        # ④ 连续空白合并成一个空格
         else:
-            text = r.text
-        return text[:25000]
+            text = r.text  # 不是 HTML（纯文本/JSON），直接用原文
+        return text[:25000]  # 截断，防止海量内容撑爆上下文
     except ImportError:
         return "Error: httpx not installed — run: pip install httpx"
     except Exception as e:
@@ -372,70 +379,77 @@ def execute_tool(
 
 def _register_builtins() -> None:
     """Register all 8 built-in tools into the central registry."""
+    # 每个 ToolDef = 一个工具的"登记条目"：
+    #   name    : 工具名（模型调用时用的名字）
+    #   schema  : 工具声明（TOOL_SCHEMAS 里的某个，发给模型描述参数）
+    #   func    : 真正执行的函数。lambda p, c = 小函数，(p=参数字典, c=config)
+    #   lambda  : 匿名函数，p 是模型传来的参数字典，c 是 config
+    #             **p 把参数字典解包成关键字参数，如 _read(**p) → _read(file_path=..., limit=...)
+    #   concurrent_safe: True=可与其他工具并行执行
     _tool_defs = [
         ToolDef(
             name="Read",
             schema=TOOL_SCHEMAS[0],
-            func=lambda p, c: _read(**p),
-            read_only=True,
+            func=lambda p, c: _read(**p),  # 参数解包传给 _read(file_path, limit, offset)
+            read_only=True,                # 只读
             concurrent_safe=True,
         ),
         ToolDef(
             name="Write",
             schema=TOOL_SCHEMAS[1],
-            func=lambda p, c: _write(**p),
-            read_only=False,
+            func=lambda p, c: _write(**p),  # 写文件，会修改磁盘
+            read_only=False,              
             concurrent_safe=False,
         ),
         ToolDef(
             name="Edit",
             schema=TOOL_SCHEMAS[2],
-            func=lambda p, c: _edit(**p),
+            func=lambda p, c: _edit(**p),  # 编辑文件，会修改磁盘
             read_only=False,
             concurrent_safe=False,
         ),
         ToolDef(
             name="Bash",
             schema=TOOL_SCHEMAS[3],
-            func=lambda p, c: _bash(p["command"], p.get("timeout", 30)),
-            read_only=False,
+            func=lambda p, c: _bash(p["command"], p.get("timeout", 30)),  # 手动取参数（含默认值）
+            read_only=False,  # 执行命令有副作用
             concurrent_safe=False,
         ),
         ToolDef(
             name="Glob",
             schema=TOOL_SCHEMAS[4],
-            func=lambda p, c: _glob(p["pattern"], p.get("path")),
+            func=lambda p, c: _glob(p["pattern"], p.get("path")),  # 查找文件，只读
             read_only=True,
             concurrent_safe=True,
         ),
         ToolDef(
             name="Grep",
             schema=TOOL_SCHEMAS[5],
-            func=lambda p, c: _grep(
+            func=lambda p, c: _grep(  # 多参数：逐个用 p.get() 取，带默认值
                 p["pattern"], p.get("path"), p.get("glob"),
                 p.get("output_mode", "files_with_matches"),
                 p.get("case_insensitive", False),
                 p.get("context", 0),
             ),
-            read_only=True,
+            read_only=True,  # 搜索内容，只读
             concurrent_safe=True,
         ),
         ToolDef(
             name="WebFetch",
             schema=TOOL_SCHEMAS[6],
-            func=lambda p, c: _webfetch(p["url"], p.get("prompt")),
+            func=lambda p, c: _webfetch(p["url"], p.get("prompt")),  # 抓网页，只读
             read_only=True,
             concurrent_safe=True,
         ),
         ToolDef(
             name="WebSearch",
             schema=TOOL_SCHEMAS[7],
-            func=lambda p, c: _websearch(p["query"]),
+            func=lambda p, c: _websearch(p["query"]),  # 网页搜索，只读
             read_only=True,
             concurrent_safe=True,
         ),
     ]
-    for td in _tool_defs:
+    for td in _tool_defs:  # 遍历每个 ToolDef，登记进注册表
         register_tool(td)
 
 

@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# corpus/build_corpus.py 和 corpus/build_index.py 的产出物：体积大（PDF近百MB、
+# 索引文件几MB~十几MB）且可以用脚本随时重新生成，不适合放进git历史。
+# papers_meta.jsonl 例外——只有几十KB，且记录了"语料库具体是哪30篇论文"，
+# 作为可复现性的文档价值比它当"构建产物"的属性更重要，所以保留追踪。
+corpus/papers/
+corpus/chunks.jsonl
+corpus/faiss.index
+corpus/chunk_ids.json
+corpus/bm25.pkl
