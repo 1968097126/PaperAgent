@@ -170,7 +170,7 @@ def detect_provider(model: str) -> str:
     """Return provider name for a model string.
     Supports 'provider/model' explicit format, or auto-detect by prefix."""
     if "/" in model:
-        return model.split("/", 1)[0]
+        return model.split("/", 1)[0] # 1为分割次数
     for prefix, pname in _PREFIXES:
         if model.lower().startswith(prefix):
             return pname
@@ -228,8 +228,23 @@ def tools_to_openai(tool_schemas: list) -> list:
 #   ]}
 #   {"role": "tool", "tool_call_id": "...", "name": "...", "content": "..."}
 
+# Anthropic 消息格式：
+#   {"role": "user",      "content": "..." | [
+#       {"type": "tool_result", "tool_use_id": "...", "content": "..."}]
+#   }
+#   {"role": "assistant", "content": [
+#       {"type": "text", "text": "我来读文件"},
+#       {"type": "tool_use", "id": "call_1", "name": "Read", "input": {...}}
+#   ]}
+
 def messages_to_anthropic(messages: list) -> list:
     """Convert neutral messages → Anthropic API format."""
+    '''
+    Anthropic 的 API :
+    user 消息：内容是字符串，工具结果必须放在 user 消息里作为tool_result 块数组
+    assistant 消息：块数组，可以是 text 块，也可以是 tool_use 块
+    
+    '''
     result = []
     i = 0
     while i < len(messages):
@@ -273,6 +288,13 @@ def messages_to_anthropic(messages: list) -> list:
 
     return result
 
+# openai 消息格式：
+#     {"role": "user", "content": "..." }
+#     {"role": "assistant", "content": "..."| None, "tool_calls": [
+#        {"id": "...", "type": "function", "function": {"name": "...", "arguments": {"arg1":"...", }}},
+#        ]
+#     }
+#     {"role": "tool", "tool_call_id": "...", "content": "..."}
 
 def messages_to_openai(messages: list) -> list:
     """Convert neutral messages → OpenAI API format."""
@@ -355,7 +377,8 @@ def stream_anthropic(
     tool_calls = []
     text       = ""
 
-    with client.messages.stream(**kwargs) as stream:
+    with client.messages.stream(**kwargs) as stream: # **dict : 解包
+    # 进入时打开流 退出时自动关闭
         for event in stream:
             etype = getattr(event, "type", None)
             if etype == "content_block_delta":
@@ -412,7 +435,7 @@ def stream_openai_compat(
         kwargs["max_tokens"] = config["max_tokens"]
 
     text          = ""
-    tool_buf: dict = {}   # index → {id, name, args_str}
+    tool_buf: dict = {}   # index → {id, name, args_str} 表示第几个工具调用
     in_tok = out_tok = 0
 
     stream = client.chat.completions.create(**kwargs)
@@ -452,7 +475,7 @@ def stream_openai_compat(
     tool_calls = []
     for idx in sorted(tool_buf):
         v = tool_buf[idx]
-        try:
+        try: # 把同理的args（JSON字符串)解析为dict
             inp = json.loads(v["args"]) if v["args"] else {}
         except json.JSONDecodeError:
             inp = {"_raw": v["args"]}
@@ -473,12 +496,13 @@ def stream(
     Auto-detects provider from model string.
     Yields: TextChunk | ThinkingChunk | AssistantTurn
     """
-    provider_name = detect_provider(model)
-    model_name    = bare_model(model)
+    provider_name = detect_provider(model) # 判断供应商
+    model_name    = bare_model(model) # 去掉前缀
     prov          = PROVIDERS.get(provider_name, PROVIDERS["openai"])
-    api_key       = get_api_key(provider_name, config)
+    api_key       = get_api_key(provider_name, config) # 拿到key
 
-    if prov["type"] == "anthropic":
+    if prov["type"] == "anthropic": # 分派
+        # 把生成器产出的每一个值原封不动地转发
         yield from stream_anthropic(api_key, model_name, system, messages, tool_schemas, config)
     else:
         import os as _os

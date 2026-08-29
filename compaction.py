@@ -23,7 +23,7 @@ def estimate_tokens(messages: list) -> int:
             for block in content:
                 if isinstance(block, dict):
                     # Sum all string values in the block
-                    for v in block.values():
+                    for v in block.values(): # 字典遍历
                         if isinstance(v, str):
                             total_chars += len(v)
         # Also count tool_calls if present
@@ -47,13 +47,14 @@ def get_context_limit(model: str) -> int:
     prov = providers.PROVIDERS.get(provider_name, {})
     return prov.get("context_limit", 128000)
 
+# 两层压缩，第一层纯字符串处理，裁剪旧的工具结果，只保留头尾；第二层使用LLM压缩
 
 # ── Layer 1: Snip old tool results ────────────────────────────────────────
 
 def snip_old_tool_results(
     messages: list,
     max_chars: int = 2000,
-    preserve_last_n_turns: int = 6,
+    preserve_last_n_turns: int = 6, # 保留最近6条消息不动
 ) -> list:
     """Truncate tool-role messages older than preserve_last_n_turns from end.
 
@@ -79,13 +80,15 @@ def snip_old_tool_results(
         first_half = content[: max_chars // 2]
         last_quarter = content[-(max_chars // 4):]
         snipped = len(content) - len(first_half) - len(last_quarter)
-        m["content"] = f"{first_half}\n[... {snipped} chars snipped ...]\n{last_quarter}"
+        # 保留开头1000字符和最后500字符
+        m["content"] = f"{first_half}\n[... {snipped} chars snipped ...]\n{last_quarter}" 
     return messages
 
 
 # ── Layer 2: Auto-compact ─────────────────────────────────────────────────
 
 def find_split_point(messages: list, keep_ratio: float = 0.3) -> int:
+    # 找切分点
     """Find index that splits messages so ~keep_ratio of tokens are in the recent portion.
 
     Walks backwards from end, accumulating token estimates, and returns the
@@ -100,7 +103,7 @@ def find_split_point(messages: list, keep_ratio: float = 0.3) -> int:
     total = estimate_tokens(messages)
     target = int(total * keep_ratio)
     running = 0
-    for i in range(len(messages) - 1, -1, -1):
+    for i in range(len(messages)-1, -1, -1): # 反向遍历
         running += estimate_tokens([messages[i]])
         if running >= target:
             return i
@@ -127,6 +130,7 @@ def compact_messages(messages: list, config: dict) -> list:
     recent = messages[split:]
 
     # Build summary request
+    # 把旧内容拼成old_text
     old_text = ""
     for m in old:
         role = m.get("role", "?")

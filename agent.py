@@ -19,17 +19,17 @@ __all__ = [
 ]
 
 
-@dataclass
+@dataclass # 自动生成常用方法，如init
 class AgentState:
     """Mutable session state. messages use the neutral provider-independent format."""
     messages: list = field(default_factory=list)
-    total_input_tokens:  int = 0
+    total_input_tokens:  int = 0 
     total_output_tokens: int = 0
     turn_count: int = 0
 
 
 @dataclass
-class ToolStart:
+class ToolStart:  # 事件类
     name:   str
     inputs: dict
 
@@ -57,7 +57,7 @@ def run(
     state: AgentState,
     config: dict,
     system_prompt: str,
-) -> Generator:
+) -> Generator:  #返回一个生成器，边执行边产出事件
     """
     Multi-turn agent loop (generator).
     Yields: TextChunk | ThinkingChunk | ToolStart | ToolEnd |
@@ -68,10 +68,10 @@ def run(
 
     while True:
         state.turn_count += 1
-        assistant_turn: AssistantTurn | None = None
+        assistant_turn: AssistantTurn | None = None # 为none或AssistanTurn类型，先设置为none
 
         # Compact context if approaching window limit
-        maybe_compact(state, config)
+        maybe_compact(state, config)  #若历史过长则进行压缩
 
         # Stream from provider (auto-detected from model name)
         for event in stream(
@@ -81,8 +81,12 @@ def run(
             tool_schemas=get_tool_schemas(),
             config=config,
         ):
+            # 判断event是否为TextChunk或ThinkingChunk的实例
             if isinstance(event, (TextChunk, ThinkingChunk)):
-                yield event
+                yield event   
+                # yield:每次产出一个事件，调用方可以逐个处理，不必等整个回复结束
+                # 下一次调用从上次停止位置继续
+                # 前文Generator的典型用法
             elif isinstance(event, AssistantTurn):
                 assistant_turn = event
 
@@ -98,6 +102,7 @@ def run(
 
         state.total_input_tokens  += assistant_turn.in_tokens
         state.total_output_tokens += assistant_turn.out_tokens
+        # 事件对象TurnDone，标志生成结束
         yield TurnDone(assistant_turn.in_tokens, assistant_turn.out_tokens)
 
         if not assistant_turn.tool_calls:
@@ -108,7 +113,9 @@ def run(
             yield ToolStart(tc["name"], tc["input"])
 
             # Permission gate
+            # 根据配置判断工具是否允许
             permitted = _check_permission(tc, config)
+            # 若不允许则进行权限请求
             if not permitted:
                 req = PermissionRequest(description=_permission_desc(tc))
                 yield req
@@ -135,15 +142,19 @@ def run(
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 
+# 权限系统
 def _check_permission(tc: dict, config: dict) -> bool:
     """Return True if operation is auto-approved (no need to ask user)."""
     perm_mode = config.get("permission_mode", "auto")
+    # 第一种，全部接受
     if perm_mode == "accept-all":
         return True
+        # 第二种，全部手动确认
     if perm_mode == "manual":
         return False   # always ask
 
     # "auto" mode: only ask for writes and non-safe bash
+    # 第三种，只对危险操作询问
     name = tc["name"]
     if name in ("Read", "Glob", "Grep", "WebFetch", "WebSearch"):
         return True
@@ -152,7 +163,7 @@ def _check_permission(tc: dict, config: dict) -> bool:
         return _is_safe_bash(tc["input"].get("command", ""))
     return False   # Write, Edit → ask
 
-
+# 把工具请求描述给用户看
 def _permission_desc(tc: dict) -> str:
     name = tc["name"]
     inp  = tc["input"]
