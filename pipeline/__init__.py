@@ -9,19 +9,24 @@
 （search_papers / retrieve_chunk / rerank）仍然注册成 ToolDef，只是改成由本包里的
 orchestrator.py 按固定顺序主动调用，而不是等 LLM 通过 function-calling 来决定调用时机。
 
-后续会包含（对应 Phase 3 / Phase 4）：
-    guardrails.py   Phase 4  前置判断问题是否落在语料库覆盖范围内；超范围直接返回澄清话术，
-                             不进入下面的检索/生成，避免"证据库里根本没有还硬答"
-    nlu.py          Phase 4  五分类（新检索/追问/澄清/元问题/越界）+ 结合历史做指代消解和
-                             query 改写，输出下游检索能直接用的独立 query
-    reflect.py      Phase 4  判断精排后的证据是否足够支撑回答；不够就触发二次检索，
-                             或者直接告诉用户"当前语料库未覆盖"而不是编造答案
-    generate.py     Phase 4  基于证据生成最终回答，并要求标注引用来源
-    memory.py       Phase 4  多级记忆压缩：随对话轮次增长，把早期历史压缩为摘要，
-                             在 compaction.py 现有两层压缩机制基础上扩展
-    trace.py         Phase 3  PipelineTrace 数据结构：记录每一轮各阶段的输入/输出/耗时/决策，
-                             是"全链路可追溯设计"这个说法对应的具体实现
-    orchestrator.py  Phase 4  把以上几步按固定顺序串起来，驱动一轮对话的完整执行
+已完成（Phase 3）：
+    trace.py        StageTrace/TurnTrace 数据结构：记录每一轮各阶段的输入/输出/耗时，
+                    是"全链路可追溯设计"的具体实现；已接入 agent.py 的 run() 循环，
+                    每次调用会往 AgentState.turn_traces 里追加一条记录
+    （agent.py 同时加了 tool_names 参数——白名单之外的工具既不出现在发给LLM的
+     schema里，真调用了也会在tool_registry执行之前就被拦下，为Phase 4的"混合检索"
+     阶段只暴露search_papers/retrieve_chunk两个领域工具做好了准备）
 
-Phase 0 阶段这里先只放这份说明性的 __init__.py。
+待实现（Phase 4）：
+    guardrails.py   前置判断问题是否落在语料库覆盖范围内；超范围直接返回澄清话术，
+                    不进入下面的检索/生成，避免"证据库里根本没有还硬答"
+    nlu.py          五分类（新检索/追问/澄清/元问题/越界）+ 结合历史做指代消解和
+                    query 改写，输出下游检索能直接用的独立 query
+    reflect.py      判断精排后的证据是否足够支撑回答；不够就触发二次检索，
+                    或者直接告诉用户"当前语料库未覆盖"而不是编造答案
+    generate.py     基于证据生成最终回答，并要求标注引用来源
+    memory.py       多级记忆压缩：随对话轮次增长，把早期历史压缩为摘要，
+                    在 compaction.py 现有两层压缩机制基础上扩展
+    orchestrator.py 把以上几步按固定顺序串起来，驱动一轮对话的完整执行，
+                    过程中往 TurnTrace 里记录每一步
 """
