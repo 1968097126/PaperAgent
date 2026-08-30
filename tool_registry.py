@@ -49,9 +49,24 @@ def get_all_tools() -> List[ToolDef]:
     return list(_registry.values())
 
 
-def get_tool_schemas() -> List[Dict[str, Any]]:
-    """Return the schemas of all registered tools (for API tool parameter)."""
-    return [t.schema for t in _registry.values()]
+def get_tool_schemas(names: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    """Return the schemas of registered tools (for API tool parameter).
+
+    Args:
+        names: 只返回这些名字对应的schema，且按names给定的顺序输出；
+               不传（默认None）时保持原行为——返回全部已注册工具的schema。
+               这个参数是Phase 3加的：研究agent场景下，对话里只想让LLM看到
+               search_papers/retrieve_chunk这类领域工具的schema，而不是连
+               Read/Write/Bash这些编程工具的schema也一起发给模型——但这些
+               编程工具本身仍然保留在registry里（供离线脚本/开发调试用），
+               不是被删除，只是"这次不放进发给模型的schema列表"。
+    """
+    if names is None:
+        return [t.schema for t in _registry.values()]
+    # 用names给定的顺序取，而不是遍历_registry再过滤——这样调用方传入的顺序
+    # 会体现在最终发给模型的schema列表顺序里；名字在registry里不存在就跳过，
+    # 不抛异常（比如白名单里手误写错名字，静默跳过好过整个请求失败）
+    return [_registry[n].schema for n in names if n in _registry]
 
 
 def execute_tool(

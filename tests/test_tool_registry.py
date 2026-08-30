@@ -89,6 +89,29 @@ def test_get_tool_schemas():
     assert schemas[0]["name"] == "echo"
 
 
+def test_get_tool_schemas_filtered_by_names():
+    register_tool(_make_echo_tool("a"))
+    register_tool(_make_echo_tool("b"))
+    register_tool(_make_echo_tool("c"))
+
+    schemas = get_tool_schemas(names=["c", "a"])
+    # 按names给定的顺序返回，不是registry里的注册顺序
+    assert [s["name"] for s in schemas] == ["c", "a"]
+
+
+def test_get_tool_schemas_names_with_unknown_name_is_skipped():
+    register_tool(_make_echo_tool("a"))
+    schemas = get_tool_schemas(names=["a", "does_not_exist"])
+    assert [s["name"] for s in schemas] == ["a"]
+
+
+def test_get_tool_schemas_none_returns_all_backward_compatible():
+    register_tool(_make_echo_tool("a"))
+    register_tool(_make_echo_tool("b"))
+    assert len(get_tool_schemas(names=None)) == 2
+    assert len(get_tool_schemas()) == 2
+
+
 # ------------------------------------------------------------------
 # execute_tool
 # ------------------------------------------------------------------
