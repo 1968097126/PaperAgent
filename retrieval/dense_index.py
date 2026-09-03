@@ -125,5 +125,8 @@ def search_dense(query: str, top_k: int = 20) -> list[tuple[str, float]]:
     return results
 
 
+from retrieval.dense_v2 import build_dense_index, embed_texts, get_model, load_dense_index, search_dense
+
+
 if __name__ == "__main__":
     build_dense_index()

@@ -87,5 +87,8 @@ def search_sparse(query: str, top_k: int = 20) -> list[tuple[str, float]]:
     return [(chunk_ids[i], float(scores[i])) for i in top_indices]
 
 
+from retrieval.sparse_v2 import build_bm25_index, load_bm25_index, search_sparse, tokenize
+
+
 if __name__ == "__main__":
     build_bm25_index()

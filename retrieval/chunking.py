@@ -1,4 +1,4 @@
-"""Phase 1：把论文正文切分成适合检索的 chunk（分块 - 召回 - 精排 三阶段的第一步）。
+"""Deterministic chunking for the research corpus.
 
 核心函数：
     build_all_chunks()   读 corpus/papers_meta.jsonl + corpus/papers/text/*.txt，
@@ -227,6 +227,23 @@ def build_all_chunks(
     print(f"共生成 {len(all_chunks)} 个chunk，来自 "
           f"{len({c['paper_id'] for c in all_chunks})} 篇论文，写入 {out_path}")
     return all_chunks
+
+
+from retrieval.chunking_v2 import (
+    build_chunks_for_paper,
+    build_chunks_from_source,
+    split_into_chunks,
+    split_into_lines_with_sections,
+    stable_chunk_id,
+    write_chunks,
+)
+from retrieval.chunking_v2 import build_all_chunks as _build_all_chunks_v2
+
+
+def build_all_chunks(meta_path: Path = META_PATH, text_dir: Path = TEXT_DIR,  # type: ignore[no-redef]
+                     out_path: Path = CHUNKS_PATH, *, config=None) -> list[dict]:
+    """Backward-compatible wrapper around the configurable implementation."""
+    return _build_all_chunks_v2(meta_path, text_dir, out_path, config=config)
 
 
 if __name__ == "__main__":

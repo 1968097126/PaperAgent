@@ -1,0 +1,22 @@
+{
+  "chunk_count": 1800,
+  "chunk_size": 1000,
+  "chunk_strategy": "sliding",
+  "corpus_fingerprint": "f2f14d379e51989749443ea4014b02b9cc2a6e9b8da4b1aa593f47037155c01d",
+  "created_at": "2026-09-03T15:49:32.759362+00:00",
+  "dense": {
+    "dimension": 1024,
+    "vectors": 1800
+  },
+  "dense_model": "BAAI/bge-m3",
+  "index_version": 2,
+  "overlap": 200,
+  "paper_count": 30,
+  "random_seed": 42,
+  "reranker_model": "BAAI/bge-reranker-base",
+  "source": "corpus/papers_meta.jsonl",
+  "sparse": {
+    "documents": 1800,
+    "token_count": 271657
+  }
+}

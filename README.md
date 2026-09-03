@@ -23,6 +23,13 @@
 
 ---
 
+> **Research-agent fork:** this repository is being developed from `tyronnescott/nano-cc` into a
+> multi-turn, evidence-grounded research-paper QA agent. The inherited provider/AgentState/tool/
+> permission/compaction/REPL harness remains attributed to nano-cc; retrieval and pipeline modules
+> are this fork's additions. MCP, LangChain, and LangGraph are intentionally not implemented.
+
+See `docs/implementation_status.md` for verified Phase status and reproducible commands.
+
 ## 🔥🔥🔥 News (Pacific Time)
 - 01:47 PM, Apr 01, 2026: Support VLLM inference (**~2000** lines of Python Code)
 - 11:30 AM, Apr 01, 2026: Support more **closed-source** models and **open-source models**: Claude, GPT, Gemini, Kimi, Qwen, Zhipu, DeepSeek, and local open-source models via Ollama or any OpenAI-compatible endpoint. (**~1700** lines of Python Code)

@@ -51,5 +51,8 @@ def main() -> None:
     print("  corpus/bm25.pkl       BM25稀疏索引")
 
 
+from corpus.indexing import main
+
+
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

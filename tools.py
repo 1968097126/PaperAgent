@@ -561,3 +561,7 @@ def _register_builtins() -> None:
 
 
 _register_builtins()
+
+# Domain tools overwrite the legacy wrappers with validated, stable JSON outputs.
+from domain_tools import register_domain_tools
+register_domain_tools()

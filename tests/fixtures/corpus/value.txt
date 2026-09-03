@@ -1,0 +1,4 @@
+Abstract
+Value learning estimates expected returns. Replay buffers reuse transitions for sample efficiency.
+Method
+Target networks stabilize temporal-difference learning in this synthetic fixture.

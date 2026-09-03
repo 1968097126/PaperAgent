@@ -56,3 +56,6 @@ def rerank(
     scored = list(zip((cid for cid, _ in candidates), scores))
     scored.sort(key=lambda x: x[1], reverse=True)
     return [(cid, float(score)) for cid, score in scored[:top_k]]
+
+
+from retrieval.rerank_v2 import get_reranker, rerank

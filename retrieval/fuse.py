@@ -36,3 +36,6 @@ def reciprocal_rank_fusion(
     # dict.items()转成列表后按分数(x[1])降序排序；分数相同时Python的sort是稳定排序，
     # 会保留字典原有的相对顺序（也就是先出现在scores里的排前面，通常对应第一路排名更靠前的文档）
     return sorted(scores.items(), key=lambda x: x[1], reverse=True)
+
+
+from retrieval.fuse_v2 import reciprocal_rank_fusion

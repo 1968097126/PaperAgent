@@ -118,3 +118,6 @@ def retrieve_chunk(chunk_id: str, context: int = 1) -> dict | None:
         "section":  target["section"],
         "text":     "\n\n".join(c["text"] for c in neighbors),
     }
+
+
+from retrieval.hybrid_v2 import HybridSearcher, get_searcher, retrieve_chunk, search_papers

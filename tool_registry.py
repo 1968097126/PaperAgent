@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
+from tool_validation import ToolInputError, validate_tool_input
 
 
 @dataclass
@@ -90,7 +91,13 @@ def execute_tool(
     if tool is None:
         return f"Error: tool '{name}' not found."
 
-    result = tool.func(params, config)
+    try:
+        validate_tool_input(tool.schema, params)
+        result = tool.func(params, config)
+    except ToolInputError as exc:
+        return f"Error: invalid arguments for tool '{name}': {exc}"
+    except Exception as exc:
+        return f"Error: tool '{name}' failed: {type(exc).__name__}: {exc}"
 
     if len(result) > max_output:
         first_half = max_output // 2
