@@ -1,4 +1,4 @@
-"""Guardrails and NLU stages for evidence-grounded research-paper QA."""
+"""Guardrails, NLU, and bounded evidence-refinement stages."""
 from __future__ import annotations
 
 import json
@@ -7,6 +7,9 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from pipeline.trace import Timer, TurnTrace
+
+REFLECT_ACTIONS = frozenset({"answer", "retrieve_again", "clarify", "refuse"})
 GUARDRAIL_ACTIONS = frozenset({"allow", "clarify", "refuse"})
 INTENTS = frozenset({"new_search", "follow_up", "clarification", "meta", "out_of_scope"})
 RETRIEVAL_INTENTS = frozenset({"new_search", "follow_up"})
@@ -306,3 +309,536 @@ class NLUStage:
                 str(exc),
                 completion_attempts=exc.attempt,
             )
+
+
+class StageExecutionError(RuntimeError):
+    """Expose retrieval-stage failures without leaking them as empty evidence."""
+
+    def __init__(self, stage: str, cause: Exception):
+        super().__init__(f"{stage} execution failed: {type(cause).__name__}: {cause}")
+        self.stage = stage
+
+
+def _validated_records(value: Any, stage: str) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        raise TypeError(f"{stage} output must be a list")
+    records: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for index, item in enumerate(value):
+        if not isinstance(item, Mapping):
+            raise TypeError(f"{stage} output item {index} must be an object")
+        record = dict(item)
+        chunk_id = record.get("chunk_id")
+        if not isinstance(chunk_id, str) or not chunk_id.strip():
+            raise ValueError(
+                f"{stage} output item {index} requires a non-empty chunk_id"
+            )
+        chunk_id = chunk_id.strip()
+        if chunk_id in seen:
+            raise ValueError(f"{stage} output contains duplicate chunk_id {chunk_id!r}")
+        seen.add(chunk_id)
+        record["chunk_id"] = chunk_id
+        records.append(record)
+    return records
+
+
+def _reflect_schema(value: dict[str, Any]) -> dict[str, Any]:
+    action = value.get("action")
+    if action not in REFLECT_ACTIONS:
+        raise ValueError(f"action must be one of {sorted(REFLECT_ACTIONS)}")
+    sufficient = value.get("sufficient")
+    if not isinstance(sufficient, bool):
+        raise TypeError("sufficient must be boolean")
+    if sufficient != (action == "answer"):
+        raise ValueError("sufficient must be true exactly when action is answer")
+    missing = value.get("missing_information")
+    rewritten_query = value.get("rewritten_query")
+    if not isinstance(missing, str):
+        raise TypeError("missing_information must be a string")
+    if not isinstance(rewritten_query, str):
+        raise TypeError("rewritten_query must be a string")
+    missing = missing.strip()
+    rewritten_query = rewritten_query.strip()
+    if action != "answer" and not missing:
+        raise ValueError(f"{action} requires missing_information")
+    if action == "retrieve_again" and not rewritten_query:
+        raise ValueError("retrieve_again requires rewritten_query")
+    if action != "retrieve_again" and rewritten_query:
+        raise ValueError("rewritten_query is only allowed for retrieve_again")
+    return {
+        "sufficient": sufficient,
+        "action": action,
+        "missing_information": missing,
+        "rewritten_query": rewritten_query,
+        "reason": _required_string(value.get("reason"), "reason"),
+    }
+
+
+def _reflect_refusal(
+    reason: str, missing_information: str, **metadata: Any
+) -> dict[str, Any]:
+    return {
+        "sufficient": False,
+        "action": "refuse",
+        "missing_information": missing_information,
+        "rewritten_query": "",
+        "reason": reason,
+        "source": "safe_fallback",
+        **metadata,
+    }
+
+
+@dataclass
+class RetrieveStage:
+    """Delegate deterministic candidate retrieval to the Phase 2 searcher."""
+
+    searcher: Any
+
+    def run(
+        self,
+        query: str,
+        filters: Mapping[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        normalized_query = _required_string(query, "query")
+        if filters is not None and not isinstance(filters, Mapping):
+            raise TypeError("filters must be a mapping or None")
+        normalized_filters = dict(filters) if filters is not None else None
+        try:
+            candidates = self.searcher.candidates(
+                normalized_query,
+                mode="hybrid",
+                filters=normalized_filters,
+            )
+            return _validated_records(candidates, "Retrieve")
+        except Exception as exc:
+            raise StageExecutionError("Retrieve", exc) from exc
+
+
+@dataclass
+class RerankStage:
+    """Delegate candidate ordering to the Phase 2 Cross-Encoder service."""
+
+    searcher: Any
+
+    def run(
+        self,
+        query: str,
+        candidates: list[dict[str, Any]],
+        top_k: int,
+    ) -> list[dict[str, Any]]:
+        normalized_query = _required_string(query, "query")
+        if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k <= 0:
+            raise ValueError("top_k must be a positive integer")
+        validated_candidates = _validated_records(candidates, "Rerank input")
+        candidate_ids = {item["chunk_id"] for item in validated_candidates}
+        try:
+            ranked = self.searcher.rerank_candidates(
+                normalized_query,
+                validated_candidates,
+                top_k,
+            )
+            evidence = _validated_records(ranked, "Rerank")
+            unexpected = [
+                item["chunk_id"]
+                for item in evidence
+                if item["chunk_id"] not in candidate_ids
+            ]
+            if unexpected:
+                raise ValueError(f"Rerank returned unknown chunk_ids: {unexpected}")
+            return evidence
+        except Exception as exc:
+            raise StageExecutionError("Rerank", exc) from exc
+
+
+@dataclass
+class ReflectStage:
+    """Make a validated evidence decision under an explicit retrieval budget."""
+
+    client: CompletionClient | None
+
+    def run(
+        self,
+        query: str,
+        evidence: list[dict[str, Any]],
+        attempt: int,
+        max_second_retrievals: int,
+    ) -> dict[str, Any]:
+        normalized_query = _required_string(query, "query")
+        if not isinstance(attempt, int) or isinstance(attempt, bool) or attempt <= 0:
+            raise ValueError("attempt must be a positive integer")
+        if (
+            not isinstance(max_second_retrievals, int)
+            or isinstance(max_second_retrievals, bool)
+            or max_second_retrievals < 0
+        ):
+            raise ValueError("max_second_retrievals must be a non-negative integer")
+        validated_evidence = _validated_records(evidence, "Reflect input")
+        if not validated_evidence:
+            if attempt <= max_second_retrievals:
+                return {
+                    "sufficient": False,
+                    "action": "retrieve_again",
+                    "missing_information": "no evidence was retrieved",
+                    "rewritten_query": normalized_query,
+                    "reason": "retry the deterministic retrieval once within budget",
+                    "source": "rule",
+                }
+            return _reflect_refusal(
+                "retrieval budget exhausted without evidence",
+                "supporting evidence",
+                source="rule",
+            )
+        if self.client is None:
+            return {
+                "sufficient": True,
+                "action": "answer",
+                "missing_information": "",
+                "rewritten_query": "",
+                "reason": "evidence is present; semantic reflection is unavailable",
+                "source": "fallback",
+            }
+        compact_evidence = [
+            {
+                "chunk_id": item["chunk_id"],
+                "paper_id": item.get("paper_id", ""),
+                "title": item.get("title", ""),
+                "section": item.get("section", ""),
+                "text": str(item.get("text", ""))[:1200],
+            }
+            for item in validated_evidence
+        ]
+        prompt = (
+            "Judge whether the supplied evidence is sufficient to answer the query using no outside knowledge. "
+            "Return ONLY JSON with sufficient:boolean, missing_information:string, "
+            "action:answer|retrieve_again|clarify|refuse, rewritten_query:string, and a non-empty reason. "
+            "sufficient must be true exactly for answer. A non-answer requires missing_information. "
+            "Only retrieve_again may provide rewritten_query, which must materially differ from the current query.\n"
+            f"Retrieval attempt: {attempt} of {max_second_retrievals + 1}\n"
+            f"Query: {normalized_query}\n"
+            f"Evidence: {json.dumps(compact_evidence, ensure_ascii=False, sort_keys=True)}"
+        )
+
+        def validate(value: dict[str, Any]) -> dict[str, Any]:
+            decision = _reflect_schema(value)
+            if decision["action"] == "retrieve_again" and _normalize_for_traceability(
+                decision["rewritten_query"]
+            ) == _normalize_for_traceability(normalized_query):
+                raise ValueError("retrieve_again requires a materially rewritten query")
+            return decision
+
+        try:
+            decision, attempts = structured_completion(
+                self.client, "Reflect", prompt, validate
+            )
+        except StageParseError as exc:
+            return _reflect_refusal(
+                f"Reflect parsing failed: {exc}",
+                "a validated evidence-sufficiency decision",
+                parse_attempts=2,
+            )
+        except StageCompletionError as exc:
+            return _reflect_refusal(
+                str(exc),
+                "a validated evidence-sufficiency decision",
+                completion_attempts=exc.attempt,
+            )
+        if decision["action"] == "retrieve_again" and attempt > max_second_retrievals:
+            return _reflect_refusal(
+                "retrieval budget exhausted after the final evidence review",
+                decision["missing_information"],
+                source="policy",
+                parse_attempts=len(attempts),
+            )
+        return {**decision, "source": "model", "parse_attempts": len(attempts)}
+
+
+@dataclass
+class RetrievalAttempt:
+    """One query-to-candidate-to-evidence lineage record."""
+
+    attempt: int
+    query: str
+    candidates: list[dict[str, Any]]
+    evidence: list[dict[str, Any]]
+    reflection: dict[str, Any]
+    status: str = "ok"
+    error: str | None = None
+
+    @property
+    def candidate_ids(self) -> list[str]:
+        return [item["chunk_id"] for item in self.candidates]
+
+    @property
+    def evidence_ids(self) -> list[str]:
+        return [item["chunk_id"] for item in self.evidence]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "attempt": self.attempt,
+            "query": self.query,
+            "candidate_ids": self.candidate_ids,
+            "evidence_ids": self.evidence_ids,
+            "candidates": [dict(item) for item in self.candidates],
+            "evidence": [dict(item) for item in self.evidence],
+            "reflection": dict(self.reflection),
+            "status": self.status,
+            "error": self.error,
+        }
+
+
+@dataclass
+class EvidenceRefinementResult:
+    """Final evidence plus all bounded retrieval attempts that produced it."""
+
+    initial_query: str
+    final_query: str
+    candidates: list[dict[str, Any]]
+    evidence: list[dict[str, Any]]
+    reflection: dict[str, Any]
+    attempts: list[RetrievalAttempt]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "initial_query": self.initial_query,
+            "final_query": self.final_query,
+            "candidates": [dict(item) for item in self.candidates],
+            "evidence": [dict(item) for item in self.evidence],
+            "reflection": dict(self.reflection),
+            "attempts": [attempt.to_dict() for attempt in self.attempts],
+        }
+
+
+def _record_refinement_trace(
+    trace: TurnTrace | None,
+    stage: str,
+    stage_input: Any,
+    stage_output: Any,
+    timer: Timer,
+    attempt: int,
+    *,
+    status: str = "ok",
+    error: str | None = None,
+    **metadata: Any,
+) -> None:
+    if trace is None:
+        return
+    trace.record(
+        stage,
+        stage_input,
+        stage_output,
+        timer.elapsed_ms,
+        attempt=attempt,
+        status=status,
+        error=error,
+        started_at=timer.started_at,
+        ended_at=timer.ended_at,
+        **metadata,
+    )
+
+
+@dataclass
+class EvidenceRefiner:
+    """Run bounded evidence refinement and optionally write StageTrace lineage."""
+
+    retrieve: RetrieveStage
+    rerank: RerankStage
+    reflect: ReflectStage
+    top_k: int = 5
+    max_second_retrievals: int = 1
+
+    def __post_init__(self) -> None:
+        if (
+            not isinstance(self.top_k, int)
+            or isinstance(self.top_k, bool)
+            or self.top_k <= 0
+        ):
+            raise ValueError("top_k must be a positive integer")
+        if (
+            not isinstance(self.max_second_retrievals, int)
+            or isinstance(self.max_second_retrievals, bool)
+            or self.max_second_retrievals < 0
+        ):
+            raise ValueError("max_second_retrievals must be a non-negative integer")
+
+    def run(
+        self,
+        query: str,
+        filters: Mapping[str, Any] | None = None,
+        *,
+        trace: TurnTrace | None = None,
+    ) -> EvidenceRefinementResult:
+        initial_query = _required_string(query, "query")
+        current_query = initial_query
+        attempts: list[RetrievalAttempt] = []
+        candidates: list[dict[str, Any]] = []
+        evidence: list[dict[str, Any]] = []
+        reflection = _reflect_refusal(
+            "evidence refinement did not run", "supporting evidence"
+        )
+
+        for attempt_number in range(1, self.max_second_retrievals + 2):
+            candidates = []
+            evidence = []
+            retrieve_input = {
+                "query": current_query,
+                "filters": dict(filters) if filters is not None else None,
+            }
+            try:
+                with Timer() as retrieve_timer:
+                    candidates = self.retrieve.run(current_query, filters)
+            except StageExecutionError as exc:
+                _record_refinement_trace(
+                    trace,
+                    "Retrieve",
+                    retrieve_input,
+                    None,
+                    retrieve_timer,
+                    attempt_number,
+                    status="error",
+                    error=str(exc),
+                    candidate_ids=[],
+                )
+                reflection = _reflect_refusal(
+                    str(exc), "supporting evidence", failed_stage=exc.stage
+                )
+                attempts.append(
+                    RetrievalAttempt(
+                        attempt=attempt_number,
+                        query=current_query,
+                        candidates=[],
+                        evidence=[],
+                        reflection=reflection,
+                        status="error",
+                        error=str(exc),
+                    )
+                )
+                break
+            _record_refinement_trace(
+                trace,
+                "Retrieve",
+                retrieve_input,
+                candidates,
+                retrieve_timer,
+                attempt_number,
+                candidate_ids=[item["chunk_id"] for item in candidates],
+            )
+
+            rerank_input = {
+                "query": current_query,
+                "candidate_ids": [item["chunk_id"] for item in candidates],
+                "top_k": self.top_k,
+            }
+            try:
+                with Timer() as rerank_timer:
+                    evidence = self.rerank.run(current_query, candidates, self.top_k)
+            except StageExecutionError as exc:
+                _record_refinement_trace(
+                    trace,
+                    "Rerank",
+                    rerank_input,
+                    None,
+                    rerank_timer,
+                    attempt_number,
+                    status="error",
+                    error=str(exc),
+                    evidence_ids=[],
+                )
+                reflection = _reflect_refusal(
+                    str(exc), "supporting evidence", failed_stage=exc.stage
+                )
+                attempts.append(
+                    RetrievalAttempt(
+                        attempt=attempt_number,
+                        query=current_query,
+                        candidates=candidates,
+                        evidence=[],
+                        reflection=reflection,
+                        status="error",
+                        error=str(exc),
+                    )
+                )
+                break
+            _record_refinement_trace(
+                trace,
+                "Rerank",
+                rerank_input,
+                evidence,
+                rerank_timer,
+                attempt_number,
+                evidence_ids=[item["chunk_id"] for item in evidence],
+            )
+
+            reflect_input = {
+                "query": current_query,
+                "evidence_ids": [item["chunk_id"] for item in evidence],
+                "attempt": attempt_number,
+                "max_second_retrievals": self.max_second_retrievals,
+            }
+            try:
+                with Timer() as reflect_timer:
+                    reflection = self.reflect.run(
+                        current_query,
+                        evidence,
+                        attempt_number,
+                        self.max_second_retrievals,
+                    )
+            except (KeyError, TypeError, ValueError) as cause:
+                error = StageExecutionError("Reflect", cause)
+                _record_refinement_trace(
+                    trace,
+                    "Reflect",
+                    reflect_input,
+                    None,
+                    reflect_timer,
+                    attempt_number,
+                    status="error",
+                    error=str(error),
+                )
+                reflection = _reflect_refusal(
+                    str(error),
+                    "a validated evidence-sufficiency decision",
+                    failed_stage="Reflect",
+                )
+                attempts.append(
+                    RetrievalAttempt(
+                        attempt=attempt_number,
+                        query=current_query,
+                        candidates=candidates,
+                        evidence=evidence,
+                        reflection=reflection,
+                        status="error",
+                        error=str(error),
+                    )
+                )
+                break
+            _record_refinement_trace(
+                trace,
+                "Reflect",
+                reflect_input,
+                reflection,
+                reflect_timer,
+                attempt_number,
+                action=reflection["action"],
+                source=reflection.get("source", "unknown"),
+            )
+            attempts.append(
+                RetrievalAttempt(
+                    attempt=attempt_number,
+                    query=current_query,
+                    candidates=candidates,
+                    evidence=evidence,
+                    reflection=reflection,
+                )
+            )
+            if reflection["action"] != "retrieve_again":
+                break
+            current_query = reflection["rewritten_query"]
+
+        return EvidenceRefinementResult(
+            initial_query=initial_query,
+            final_query=current_query,
+            candidates=candidates,
+            evidence=evidence,
+            reflection=reflection,
+            attempts=attempts,
+        )

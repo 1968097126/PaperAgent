@@ -7,7 +7,7 @@
 | 1 语料库与索引 | 已完成 | `retrieval/config.py`、`retrieval/corpus.py`、`retrieval/chunking_v2.py`、`retrieval/dense_v2.py`、`retrieval/sparse_v2.py`、`retrieval/manifest.py`、`corpus/indexing.py` | `tests/test_corpus_index.py`、`tests/test_corpus_edge_cases.py`；真实建库生成 30 papers / 1,800 chunks / 1,800×1024 FAISS 向量，manifest `ready=true, stale=false` |
 | 2 混合检索与重排序 | 已完成 | `retrieval/fuse_v2.py`、`retrieval/rerank_v2.py`、`retrieval/hybrid_v2.py`、`domain_tools.py`、`tool_validation.py`、`retrieval/sanity_check.py` | `tests/test_retrieval_v2.py`、`tests/test_domain_tools.py`；三档真实检索输出 `docs/retrieval_sanity.json` |
 | 3 Harness 内核改造 | 已完成 | `agent.py`、`pipeline/trace.py`、`tool_registry.py`；保留 Provider、权限门、上下文压缩和原编程入口 | `tests/test_agent.py`、`tests/test_trace.py`、`tests/test_tool_registry.py`、`tests/test_domain_tools.py`；研究域 schema/执行双层白名单、允许/禁止/未知工具、非法参数、Provider 异常和兼容路径均有测试 |
-| 4 七阶段编排 | 进行中（Step 1/4 完成） | `pipeline/stages.py` 的 Guardrails、NLU、结构化补全与可追溯改写校验 | `tests/test_pipeline_stage1.py`；21 项独立测试通过，后续 Retrieve/Rerank/Reflect/Generate/Memory/Orchestrator 尚未纳入 |
+| 4 七阶段编排 | 进行中（Step 2/4 完成） | `pipeline/stages.py` 的 Guardrails、NLU、Retrieve、Rerank、Reflect 与有界证据精炼 | `tests/test_pipeline_stage1.py`、`tests/test_pipeline_stage2.py`；Generate/Memory/Orchestrator 尚未纳入 |
 | 5 CLI | 未完成 | — | 尚未完成收口和真实 Provider CLI 验证 |
 | 6 评测系统 | 未完成 | — | 尚无正式全量评测结果 |
 | 7 打磨与真实结果 | 未开始 | — | — |
@@ -20,6 +20,7 @@ conda run -n nanocc python -m retrieval.sanity_check --corpus-dir corpus --devic
 conda run -n nanocc python -m pytest -q
 conda run -n nanocc python -m pytest -q tests/test_agent.py tests/test_trace.py tests/test_tool_registry.py tests/test_domain_tools.py
 conda run -n nanocc python -m pytest -q tests/test_pipeline_stage1.py
+conda run -n nanocc python -m pytest -q tests/test_pipeline_stage2.py
 ```
 
 ## Phase 1–2 已验证事实
@@ -48,6 +49,16 @@ conda run -n nanocc python -m pytest -q tests/test_pipeline_stage1.py
 - 模型结构化输出只允许一次修复；两次解析失败转为澄清，Provider 异常转为带尝试次数的安全 fallback。
 - 已解析引用、约束和比较对象必须来自当前输入、最近历史或已验证记忆，并原样保留在独立 Query 中；不可追溯值会触发修复或澄清。
 - 无 Provider 时不伪造语义分类：Guardrails 延迟给 NLU，NLU 使用原始 Query 的显式 fallback。
+
+## Phase 4 Step 2 已验证事实
+
+- Retrieve 与 Rerank 只委托 Phase 2 `HybridSearcher.candidates()` 和 `rerank_candidates()`，编排层不复制稠密检索、BM25、RRF 或 Cross-Encoder 算法。
+- 候选与证据输出校验非空 `chunk_id`、重复 ID 及重排结果来源；重排层不能引入召回候选之外的 chunk。
+- Reflect 严格校验 `sufficient`、`missing_information`、四类 action、`rewritten_query` 和 reason 的类型、完整性与相互一致性。
+- Reflect 结构化输出只允许一次修复；持续解析失败或 Provider 异常都转为可解释的安全拒答。
+- `EvidenceRefiner` 默认最多执行一次二次检索，两轮总上限由 `max_second_retrievals` 显式控制；模型在预算耗尽后继续请求检索会被策略层改为拒答。
+- 每次检索保留 attempt、Query、完整候选、最终证据、候选/证据 ID、Reflect 决策和错误状态；传入 `TurnTrace` 时同步记录 Retrieve/Rerank/Reflect 的起止时间、耗时、输入输出和 attempt 元数据。
+- 空结果在预算内做确定性重试，预算耗尽后拒答；检索或重排异常不会被伪装成正常空结果。
 
 ## 当前外部阻塞
 
