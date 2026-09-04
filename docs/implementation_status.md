@@ -7,7 +7,7 @@
 | 1 语料库与索引 | 已完成 | `retrieval/config.py`、`retrieval/corpus.py`、`retrieval/chunking_v2.py`、`retrieval/dense_v2.py`、`retrieval/sparse_v2.py`、`retrieval/manifest.py`、`corpus/indexing.py` | `tests/test_corpus_index.py`、`tests/test_corpus_edge_cases.py`；真实建库生成 30 papers / 1,800 chunks / 1,800×1024 FAISS 向量，manifest `ready=true, stale=false` |
 | 2 混合检索与重排序 | 已完成 | `retrieval/fuse_v2.py`、`retrieval/rerank_v2.py`、`retrieval/hybrid_v2.py`、`domain_tools.py`、`tool_validation.py`、`retrieval/sanity_check.py` | `tests/test_retrieval_v2.py`、`tests/test_domain_tools.py`；三档真实检索输出 `docs/retrieval_sanity.json` |
 | 3 Harness 内核改造 | 已完成 | `agent.py`、`pipeline/trace.py`、`tool_registry.py`；保留 Provider、权限门、上下文压缩和原编程入口 | `tests/test_agent.py`、`tests/test_trace.py`、`tests/test_tool_registry.py`、`tests/test_domain_tools.py`；研究域 schema/执行双层白名单、允许/禁止/未知工具、非法参数、Provider 异常和兼容路径均有测试 |
-| 4 七阶段编排 | 进行中（Step 2/4 完成） | `pipeline/stages.py` 的 Guardrails、NLU、Retrieve、Rerank、Reflect 与有界证据精炼 | `tests/test_pipeline_stage1.py`、`tests/test_pipeline_stage2.py`；Generate/Memory/Orchestrator 尚未纳入 |
+| 4 七阶段编排 | 进行中（Step 3/4 完成） | `pipeline/stages.py` 的七阶段 Stage（除 Orchestrator 接线）、`pipeline/memory.py` 的结构化研究记忆 | `tests/test_pipeline_stage1.py`、`tests/test_pipeline_stage2.py`、`tests/test_pipeline_stage3.py`；Orchestrator 尚未纳入 |
 | 5 CLI | 未完成 | — | 尚未完成收口和真实 Provider CLI 验证 |
 | 6 评测系统 | 未完成 | — | 尚无正式全量评测结果 |
 | 7 打磨与真实结果 | 未开始 | — | — |
@@ -21,6 +21,7 @@ conda run -n nanocc python -m pytest -q
 conda run -n nanocc python -m pytest -q tests/test_agent.py tests/test_trace.py tests/test_tool_registry.py tests/test_domain_tools.py
 conda run -n nanocc python -m pytest -q tests/test_pipeline_stage1.py
 conda run -n nanocc python -m pytest -q tests/test_pipeline_stage2.py
+conda run -n nanocc python -m pytest -q tests/test_pipeline_stage3.py
 ```
 
 ## Phase 1–2 已验证事实
@@ -59,6 +60,16 @@ conda run -n nanocc python -m pytest -q tests/test_pipeline_stage2.py
 - `EvidenceRefiner` 默认最多执行一次二次检索，两轮总上限由 `max_second_retrievals` 显式控制；模型在预算耗尽后继续请求检索会被策略层改为拒答。
 - 每次检索保留 attempt、Query、完整候选、最终证据、候选/证据 ID、Reflect 决策和错误状态；传入 `TurnTrace` 时同步记录 Retrieve/Rerank/Reflect 的起止时间、耗时、输入输出和 attempt 元数据。
 - 空结果在预算内做确定性重试，预算耗尽后拒答；检索或重排异常不会被伪装成正常空结果。
+
+## Phase 4 Step 3 已验证事实
+
+- Generate 只在 Reflect 明确 `sufficient=true, action=answer` 且证据结构完整时进入生成；Meta、澄清、越界与证据不足均走不调用 Provider 的确定性响应。
+- 生成提示只提供最终证据，中文提问默认中文，并限制每条证据进入上下文的长度；无 Provider 时返回带真实 `[paper_id/chunk_id]` 的证据摘录 fallback。
+- 引用校验程序化覆盖缺失引用、未知引用、重复引用、空证据、畸形证据和重复证据身份；只有与最终证据匹配的 chunk ID 才进入状态与 Memory。
+- 模型答案引用非法时只允许一次修复；首次调用异常、修复调用异常或二次校验失败均返回不泄漏未验证答案的安全拒答。
+- `ResearchMemory` 支持 `off`、`on`、`compressed` 三态；`compressed` 仅在估算 token 超过阈值时自动压缩，不再每轮无条件压缩。
+- Memory 只保存实际引用证据对应的论文、chunk 和事实；实体、限制条件及比较对象必须能从当前输入、显式历史上下文、既有记忆或检索证据中追溯。
+- 压缩独立于 nano-cc 的消息级 `compaction.py`：前者约束结构化研究事实，后者负责通用消息上下文；所有 Memory 列表均有压缩上限或硬上限。
 
 ## 当前外部阻塞
 

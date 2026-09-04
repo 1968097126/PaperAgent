@@ -1,4 +1,4 @@
-"""Guardrails, NLU, and bounded evidence-refinement stages."""
+"""Independently testable stages for evidence-grounded research-paper QA."""
 from __future__ import annotations
 
 import json
@@ -7,9 +7,11 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from pipeline.memory import ResearchMemory
 from pipeline.trace import Timer, TurnTrace
 
 REFLECT_ACTIONS = frozenset({"answer", "retrieve_again", "clarify", "refuse"})
+CITATION_PATTERN = re.compile(r"\[([^\[\]\/\s]+)/([^\[\]\/\s]+)\]")
 GUARDRAIL_ACTIONS = frozenset({"allow", "clarify", "refuse"})
 INTENTS = frozenset({"new_search", "follow_up", "clarification", "meta", "out_of_scope"})
 RETRIEVAL_INTENTS = frozenset({"new_search", "follow_up"})
@@ -842,3 +844,326 @@ class EvidenceRefiner:
             reflection=reflection,
             attempts=attempts,
         )
+
+
+def validate_citations(
+    answer: Any,
+    evidence: Sequence[Mapping[str, Any]],
+    *,
+    require_citation: bool = True,
+) -> dict[str, Any]:
+    """Validate stable ``[paper_id/chunk_id]`` tokens against retrieved evidence."""
+    evidence_pairs: set[tuple[str, str]] = set()
+    evidence_errors: list[str] = []
+    if not isinstance(evidence, Sequence) or isinstance(evidence, (str, bytes)):
+        evidence_errors.append("evidence must be a sequence")
+        evidence = []
+    for index, item in enumerate(evidence):
+        if not isinstance(item, Mapping):
+            evidence_errors.append(f"evidence item {index} must be an object")
+            continue
+        paper_id = item.get("paper_id")
+        chunk_id = item.get("chunk_id")
+        if not isinstance(paper_id, str) or not paper_id.strip():
+            evidence_errors.append(f"evidence item {index} requires paper_id")
+            continue
+        if not isinstance(chunk_id, str) or not chunk_id.strip():
+            evidence_errors.append(f"evidence item {index} requires chunk_id")
+            continue
+        pair = (paper_id.strip(), chunk_id.strip())
+        if pair in evidence_pairs:
+            evidence_errors.append(f"duplicate evidence identity: {pair}")
+            continue
+        evidence_pairs.add(pair)
+
+    errors = list(evidence_errors)
+    text = answer if isinstance(answer, str) else ""
+    if not isinstance(answer, str) or not answer.strip():
+        errors.append("answer must be a non-empty string")
+    matches = CITATION_PATTERN.findall(text)
+    duplicates = sorted({pair for pair in matches if matches.count(pair) > 1})
+    invalid = sorted(pair for pair in set(matches) if pair not in evidence_pairs)
+    if require_citation and not evidence_pairs:
+        errors.append("no evidence is available for a cited answer")
+    if require_citation and not matches:
+        errors.append("answer has no evidence citation")
+    if invalid:
+        errors.append(f"unknown citations: {invalid}")
+    if duplicates:
+        errors.append(f"duplicate citations: {duplicates}")
+    return {
+        "valid": not errors,
+        "citations": [chunk_id for _, chunk_id in matches],
+        "citation_pairs": matches,
+        "valid_citations": [
+            chunk_id
+            for paper_id, chunk_id in matches
+            if (paper_id, chunk_id) in evidence_pairs
+        ],
+        "invalid": invalid,
+        "duplicates": duplicates,
+        "evidence_errors": evidence_errors,
+        "errors": errors,
+    }
+
+
+def _non_evidence_response(answer: str, route: str) -> dict[str, Any]:
+    return {
+        "answer": answer,
+        "citations": [],
+        "citation_validation": validate_citations(
+            answer,
+            [],
+            require_citation=False,
+        ),
+        "source": "rule",
+        "route": route,
+        "generation_attempts": 0,
+    }
+
+
+def _generation_failure(
+    reason: str,
+    *,
+    attempts: int,
+    validation: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    failed_validation = dict(validation or {})
+    if not failed_validation:
+        failed_validation = {
+            "valid": False,
+            "citations": [],
+            "citation_pairs": [],
+            "valid_citations": [],
+            "invalid": [],
+            "duplicates": [],
+            "evidence_errors": [],
+            "errors": [reason],
+        }
+    return {
+        "answer": "现有证据无法生成引用可验证的答案。",
+        "citations": [],
+        "citation_validation": failed_validation,
+        "source": "safe_fallback",
+        "fallback": True,
+        "generation_attempts": attempts,
+        "generation_error": reason,
+    }
+
+
+def _complete_generation(
+    client: CompletionClient,
+    prompt: str,
+    attempt: int,
+) -> str:
+    try:
+        return client.complete("Generate", prompt)
+    except Exception as cause:
+        raise StageCompletionError("Generate", attempt, cause) from cause
+
+
+def _generation_evidence(
+    evidence: Sequence[Mapping[str, Any]],
+) -> tuple[list[dict[str, Any]], list[str]]:
+    records: list[dict[str, Any]] = []
+    errors: list[str] = []
+    seen: set[tuple[str, str]] = set()
+    for index, item in enumerate(evidence):
+        if not isinstance(item, Mapping):
+            errors.append(f"evidence item {index} must be an object")
+            continue
+        required: dict[str, str] = {}
+        for field in ("paper_id", "chunk_id", "text"):
+            value = item.get(field)
+            if not isinstance(value, str) or not value.strip():
+                errors.append(f"evidence item {index} requires {field}")
+                break
+            required[field] = value.strip()
+        else:
+            pair = (required["paper_id"], required["chunk_id"])
+            if pair in seen:
+                errors.append(f"duplicate evidence identity: {pair}")
+                continue
+            seen.add(pair)
+            records.append(
+                {
+                    **dict(item),
+                    **required,
+                    "title": str(item.get("title", "")).strip(),
+                    "section": str(item.get("section", "")).strip(),
+                }
+            )
+    return records, errors
+
+
+@dataclass
+class GenerateStage:
+    """Generate only from final evidence and enforce citation integrity."""
+
+    client: CompletionClient | None
+    max_evidence_chars: int = 2400
+
+    def __post_init__(self) -> None:
+        if (
+            not isinstance(self.max_evidence_chars, int)
+            or isinstance(self.max_evidence_chars, bool)
+            or self.max_evidence_chars <= 0
+        ):
+            raise ValueError("max_evidence_chars must be a positive integer")
+
+    def run(
+        self,
+        user_message: str,
+        nlu: Mapping[str, Any],
+        reflect: Mapping[str, Any],
+        evidence: Sequence[Mapping[str, Any]],
+    ) -> dict[str, Any]:
+        intent = nlu.get("intent")
+        action = reflect.get("action")
+        if intent == "meta":
+            return _non_evidence_response(
+                "我是一个仅检索本地科研论文语料、展示证据引用和执行轨迹的问答 Agent。",
+                "meta",
+            )
+        if action == "clarify" or intent == "clarification":
+            return _non_evidence_response(
+                "请补充要检索的论文、方法或比较条件。",
+                "clarify",
+            )
+        if action != "answer" or intent == "out_of_scope":
+            return _non_evidence_response(
+                "现有论文证据不足，无法仅依据语料库可靠回答。",
+                "refuse",
+            )
+        if reflect.get("sufficient") is not True:
+            return _generation_failure(
+                "Reflect did not mark the evidence sufficient",
+                attempts=0,
+            )
+        if not isinstance(evidence, Sequence) or isinstance(evidence, (str, bytes)):
+            return _generation_failure("evidence must be a sequence", attempts=0)
+        validated_evidence, evidence_errors = _generation_evidence(evidence)
+        if evidence_errors or not validated_evidence:
+            reason = "; ".join(evidence_errors) or "no evidence was provided"
+            return _generation_failure(reason, attempts=0)
+
+        if self.client is None:
+            item = validated_evidence[0]
+            prefix = (
+                "根据检索证据："
+                if re.search(r"[\u3400-\u9fff]", user_message or "")
+                else "Based on the retrieved evidence: "
+            )
+            answer = (
+                f"{prefix}{item['text'][:300]} [{item['paper_id']}/{item['chunk_id']}]"
+            )
+            validation = validate_citations(answer, validated_evidence)
+            return {
+                "answer": answer,
+                "citations": validation["valid_citations"],
+                "citation_validation": validation,
+                "source": "fallback",
+                "generation_attempts": 0,
+            }
+
+        query = nlu.get("standalone_query")
+        if not isinstance(query, str) or not query.strip():
+            return _generation_failure(
+                "NLU did not provide a standalone query", attempts=0
+            )
+        labelled = [
+            {
+                "citation": f"[{item['paper_id']}/{item['chunk_id']}]",
+                "title": item["title"],
+                "section": item["section"],
+                "text": item["text"][: self.max_evidence_chars],
+            }
+            for item in validated_evidence
+        ]
+        language = (
+            "Chinese by default, unless the user explicitly requested another language"
+            if re.search(r"[\u3400-\u9fff]", user_message or "")
+            else "the language used by the user"
+        )
+        prompt = (
+            f"Answer in {language}. Use ONLY the supplied evidence; do not add model knowledge. "
+            "Every factual claim must carry an exact citation token shown below. Do not invent or repeat "
+            "citation tokens. Return only the answer text.\n"
+            f"Question: {query.strip()}\n"
+            f"Evidence: {json.dumps(labelled, ensure_ascii=False, sort_keys=True)}"
+        )
+        try:
+            answer = _complete_generation(self.client, prompt, 1)
+        except StageCompletionError as error:
+            return _generation_failure(str(error), attempts=1)
+        validation = validate_citations(answer, validated_evidence)
+        if validation["valid"]:
+            return {
+                "answer": answer.strip(),
+                "citations": validation["valid_citations"],
+                "citation_validation": validation,
+                "source": "model",
+                "generation_attempts": 1,
+            }
+
+        repair_prompt = (
+            "Repair the answer using ONLY the supplied evidence and exact citation tokens. "
+            "Remove unsupported claims, unknown citations, and duplicate citation occurrences. "
+            "Return only the corrected answer text.\n"
+            f"Validation errors: {json.dumps(validation['errors'], ensure_ascii=False)}\n"
+            f"Evidence: {json.dumps(labelled, ensure_ascii=False, sort_keys=True)}\n"
+            f"Invalid answer: {answer if isinstance(answer, str) else repr(answer)}"
+        )
+        try:
+            repaired = _complete_generation(self.client, repair_prompt, 2)
+        except StageCompletionError as error:
+            return _generation_failure(
+                str(error),
+                attempts=2,
+                validation=validation,
+            )
+        repaired_validation = validate_citations(repaired, validated_evidence)
+        if not repaired_validation["valid"]:
+            return _generation_failure(
+                "citation validation failed after one repair",
+                attempts=2,
+                validation=repaired_validation,
+            )
+        return {
+            "answer": repaired.strip(),
+            "citations": repaired_validation["valid_citations"],
+            "citation_validation": repaired_validation,
+            "source": "model_repair",
+            "generation_attempts": 2,
+        }
+
+
+@dataclass
+class MemoryStage:
+    """Apply an evidence-only domain-memory update after generation."""
+
+    def run(
+        self,
+        memory: ResearchMemory,
+        *,
+        user_message: str,
+        nlu: Mapping[str, Any],
+        evidence: Sequence[Mapping[str, Any]],
+        generated: Mapping[str, Any],
+        reflect: Mapping[str, Any],
+        traceable_context: Sequence[Any] = (),
+    ) -> dict[str, Any]:
+        if not isinstance(memory, ResearchMemory):
+            raise TypeError("memory must be a ResearchMemory instance")
+        citations = generated.get("citations", [])
+        if not isinstance(citations, Sequence) or isinstance(citations, (str, bytes)):
+            raise TypeError("generated citations must be a sequence")
+        memory.update(
+            user_message=user_message,
+            nlu=nlu,
+            evidence=evidence,
+            citations=citations,
+            unresolved=reflect.get("action") in {"clarify", "refuse"},
+            traceable_context=traceable_context,
+        )
+        return memory.to_dict()
