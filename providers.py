@@ -20,8 +20,9 @@ Model string formats:
   "custom/my-model"          uses CUSTOM_BASE_URL from config
 """
 from __future__ import annotations
+
 import json
-from typing import Generator
+from collections.abc import Generator
 
 # ── Provider registry ──────────────────────────────────────────────────────
 
@@ -42,8 +43,8 @@ PROVIDERS: dict[str, dict] = {
         "base_url":   "https://api.openai.com/v1",
         "context_limit": 128000,
         "models": [
-            "gpt-4o", "gpt-4o-mini", "gpt-4-turbo",
-            "o3-mini", "o1", "o1-mini",
+            "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna",
+            "gpt-4.1", "gpt-4.1-mini", "gpt-4o", "gpt-4o-mini",
         ],
     },
     "gemini": {
@@ -94,7 +95,7 @@ PROVIDERS: dict[str, dict] = {
         "base_url":   "https://api.deepseek.com/v1",
         "context_limit": 64000,
         "models": [
-            "deepseek-chat", "deepseek-coder", "deepseek-reasoner",
+            "deepseek-v4-flash", "deepseek-v4-pro", "deepseek-v4-flash-vision-exp",
         ],
     },
     "ollama": {
@@ -130,6 +131,9 @@ COSTS = {
     "claude-opus-4-6":          (15.0, 75.0),
     "claude-sonnet-4-6":        (3.0,  15.0),
     "claude-haiku-4-5-20251001": (0.8,  4.0),
+    "gpt-5.6-sol":              (4.0,  20.0),
+    "gpt-5.6-terra":            (2.0,  12.0),
+    "gpt-5.6-luna":             (0.2,   1.2),
     "gpt-4o":                   (2.5,  10.0),
     "gpt-4o-mini":              (0.15,  0.6),
     "o3-mini":                  (1.1,   4.4),
@@ -432,7 +436,26 @@ def stream_openai_compat(
         if not config.get("disable_tool_choice"):
             kwargs["tool_choice"] = "auto"
     if config.get("max_tokens"):
-        kwargs["max_tokens"] = config["max_tokens"]
+        token_parameter = (
+            "max_completion_tokens"
+            if model.startswith(("gpt-5", "gpt-6"))
+            else "max_tokens"
+        )
+        kwargs[token_parameter] = config["max_tokens"]
+    if model.startswith(("gpt-5", "gpt-6")):
+        kwargs["stream_options"] = {"include_usage": True}
+    if model.startswith("deepseek-v4-"):
+        thinking_enabled = bool(config.get("thinking", False))
+        kwargs["extra_body"] = {
+            "thinking": {"type": "enabled" if thinking_enabled else "disabled"}
+        }
+        if thinking_enabled:
+            requested_effort = str(config.get("reasoning_effort", "high")).lower()
+            kwargs["reasoning_effort"] = (
+                requested_effort
+                if requested_effort in {"low", "high", "max"}
+                else "high"
+            )
 
     text          = ""
     tool_buf: dict = {}   # index → {id, name, args_str} 表示第几个工具调用

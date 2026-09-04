@@ -7,7 +7,7 @@
 | 1 语料库与索引 | 已完成 | `retrieval/config.py`、`retrieval/corpus.py`、`retrieval/chunking_v2.py`、`retrieval/dense_v2.py`、`retrieval/sparse_v2.py`、`retrieval/manifest.py`、`corpus/indexing.py` | `tests/test_corpus_index.py`、`tests/test_corpus_edge_cases.py`；真实建库生成 30 papers / 1,800 chunks / 1,800×1024 FAISS 向量，manifest `ready=true, stale=false` |
 | 2 混合检索与重排序 | 已完成 | `retrieval/fuse_v2.py`、`retrieval/rerank_v2.py`、`retrieval/hybrid_v2.py`、`domain_tools.py`、`tool_validation.py`、`retrieval/sanity_check.py` | `tests/test_retrieval_v2.py`、`tests/test_domain_tools.py`；三档真实检索输出 `docs/retrieval_sanity.json` |
 | 3 Harness 内核改造 | 已完成 | `agent.py`、`pipeline/trace.py`、`tool_registry.py`；保留 Provider、权限门、上下文压缩和原编程入口 | `tests/test_agent.py`、`tests/test_trace.py`、`tests/test_tool_registry.py`、`tests/test_domain_tools.py`；研究域 schema/执行双层白名单、允许/禁止/未知工具、非法参数、Provider 异常和兼容路径均有测试 |
-| 4 七阶段编排 | 已完成（真实 Provider 验证待人工补充） | `pipeline/stages.py`、`pipeline/memory.py`、`pipeline/orchestrator.py`、`pipeline/client.py` | `tests/test_pipeline_stage1.py` 至 `tests/test_pipeline_stage4.py`；mock E2E、异常降级和微型真实索引 smoke test 已通过 |
+| 4 七阶段编排 | 已完成 | `pipeline/stages.py`、`pipeline/memory.py`、`pipeline/orchestrator.py`、`pipeline/client.py`、`providers.py` | mock/异常/真实索引测试已通过；DeepSeek V4 Flash 真实七阶段回答与 OpenAI GPT-5.6 Luna completion 已验证 |
 | 5 CLI | 未完成 | — | 尚未完成收口和真实 Provider CLI 验证 |
 | 6 评测系统 | 未完成 | — | 尚无正式全量评测结果 |
 | 7 打磨与真实结果 | 未开始 | — | — |
@@ -23,6 +23,7 @@ conda run -n nanocc python -m pytest -q tests/test_pipeline_stage1.py
 conda run -n nanocc python -m pytest -q tests/test_pipeline_stage2.py
 conda run -n nanocc python -m pytest -q tests/test_pipeline_stage3.py
 conda run -n nanocc python -m pytest -q tests/test_pipeline_stage4.py
+conda run -n nanocc python -m pytest -q tests/test_provider_updates.py
 ```
 
 ## Phase 1–2 已验证事实
@@ -80,8 +81,10 @@ conda run -n nanocc python -m pytest -q tests/test_pipeline_stage4.py
 - 每轮完成后原子式更新消息、语义状态、检索状态、引用、研究记忆、轮次和 Trace；Provider token 使用调用前后差值，避免复用客户端时重复累计。
 - `NativeProviderClient` 将原流式 Provider 适配为阶段 completion，显式传入空工具 schema，并累计每次完成的输入/输出 token。
 - mock E2E 覆盖标准链路、二次检索上限、多轮历史、安全路由及异常降级；微型真实索引 smoke test 实际构建并加载版本化 FAISS、BM25、chunks 与 manifest，只用确定性替身隔离外部嵌入和重排模型。
-- 用户决定暂缓真实 Provider E2E；该验证不是本次 Step 4 代码收口条件，后续取得 API Key 或可用本地模型后人工补充。
+- DeepSeek V4 Flash 已在 30 篇论文真实索引上完成一轮充分证据回答：七阶段状态均为 `ok`，4 个引用全部来自最终证据并写入 Memory。
+- OpenAI GPT-5.6 Luna 已完成真实 completion 与 token usage 验证；GPT-5/6 使用 `max_completion_tokens`，流式请求显式开启 usage 回传。
+- DeepSeek V4 默认高强度思考可能耗尽结构化阶段的输出预算；Provider 现在默认显式关闭思考，只有配置 `thinking=true` 时才按 low/high/max 开启。
 
-## 当前外部阻塞
+## 当前外部配置
 
-`nanocc` 当前默认 Provider 为 Anthropic，未配置 API Key，且本机 Ollama/LM Studio 未响应。因此真实 Provider E2E、Phase 5 真实 CLI 验证和 Phase 6 模型相关正式评测待人工补充；Phase 4 的代码、mock E2E 和离线真实索引验证已经收口。
+真实验证使用了用户临时提供的 OpenAI/DeepSeek 凭据；仓库已恢复为 `OPENAI_API_KEY` 与 `DEEPSEEK_API_KEY` 环境变量引用，没有保留或提交任何密钥。后续真实 CLI 或正式评测前需要重新导出相应环境变量。
