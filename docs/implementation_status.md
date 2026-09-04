@@ -7,7 +7,7 @@
 | 1 语料库与索引 | 已完成 | `retrieval/config.py`、`retrieval/corpus.py`、`retrieval/chunking_v2.py`、`retrieval/dense_v2.py`、`retrieval/sparse_v2.py`、`retrieval/manifest.py`、`corpus/indexing.py` | `tests/test_corpus_index.py`、`tests/test_corpus_edge_cases.py`；真实建库生成 30 papers / 1,800 chunks / 1,800×1024 FAISS 向量，manifest `ready=true, stale=false` |
 | 2 混合检索与重排序 | 已完成 | `retrieval/fuse_v2.py`、`retrieval/rerank_v2.py`、`retrieval/hybrid_v2.py`、`domain_tools.py`、`tool_validation.py`、`retrieval/sanity_check.py` | `tests/test_retrieval_v2.py`、`tests/test_domain_tools.py`；三档真实检索输出 `docs/retrieval_sanity.json` |
 | 3 Harness 内核改造 | 已完成 | `agent.py`、`pipeline/trace.py`、`tool_registry.py`；保留 Provider、权限门、上下文压缩和原编程入口 | `tests/test_agent.py`、`tests/test_trace.py`、`tests/test_tool_registry.py`、`tests/test_domain_tools.py`；研究域 schema/执行双层白名单、允许/禁止/未知工具、非法参数、Provider 异常和兼容路径均有测试 |
-| 4 七阶段编排 | 未完成 | — | 尚未完成收口和真实 Provider 端到端验证 |
+| 4 七阶段编排 | 进行中（Step 1/4 完成） | `pipeline/stages.py` 的 Guardrails、NLU、结构化补全与可追溯改写校验 | `tests/test_pipeline_stage1.py`；21 项独立测试通过，后续 Retrieve/Rerank/Reflect/Generate/Memory/Orchestrator 尚未纳入 |
 | 5 CLI | 未完成 | — | 尚未完成收口和真实 Provider CLI 验证 |
 | 6 评测系统 | 未完成 | — | 尚无正式全量评测结果 |
 | 7 打磨与真实结果 | 未开始 | — | — |
@@ -19,6 +19,7 @@ conda run -n nanocc python corpus/build_index.py --corpus-dir corpus --device cp
 conda run -n nanocc python -m retrieval.sanity_check --corpus-dir corpus --device cpu --top-k 3 --output docs/retrieval_sanity.json
 conda run -n nanocc python -m pytest -q
 conda run -n nanocc python -m pytest -q tests/test_agent.py tests/test_trace.py tests/test_tool_registry.py tests/test_domain_tools.py
+conda run -n nanocc python -m pytest -q tests/test_pipeline_stage1.py
 ```
 
 ## Phase 1–2 已验证事实
@@ -39,6 +40,15 @@ conda run -n nanocc python -m pytest -q tests/test_agent.py tests/test_trace.py 
 - Trace 与消息历史分离，不受 nano-cc 原有上下文压缩裁剪影响。
 - 工具注册表测试会恢复进程级全局状态，测试结果不依赖执行顺序。
 
+## Phase 4 Step 1 已验证事实
+
+- Guardrails 使用确定性规则处理空输入、超长输入和明显提示注入，再用可选 Provider 做粗粒度领域判断。
+- Guardrails 负责明显非法、注入和粗粒度越界；NLU 保留 `out_of_scope` 作为语义兜底，两者边界已写入模型提示。
+- NLU 固定输出五类意图、独立 Query、已解析引用、检索决策、原因、约束和比较对象，并严格校验字段类型与意图/检索决策一致性。
+- 模型结构化输出只允许一次修复；两次解析失败转为澄清，Provider 异常转为带尝试次数的安全 fallback。
+- 已解析引用、约束和比较对象必须来自当前输入、最近历史或已验证记忆，并原样保留在独立 Query 中；不可追溯值会触发修复或澄清。
+- 无 Provider 时不伪造语义分类：Guardrails 延迟给 NLU，NLU 使用原始 Query 的显式 fallback。
+
 ## 当前外部阻塞
 
-`nanocc` 当前默认 Provider 为 Anthropic，未配置 API Key。因此 Phase 4/5 的真实模型端到端验证和 Phase 6 的模型相关正式评测暂时不能执行。该阻塞不影响离线索引、检索、fixture/mock 测试、纯指标测试及后续离线实现。
+`nanocc` 当前默认 Provider 为 Anthropic，未配置 API Key。因此 Phase 4 最终真实模型端到端验证、Phase 5 真实 CLI 验证和 Phase 6 模型相关正式评测暂时不能执行。该阻塞不影响 Phase 4 Step 1–3 的 mock/离线实现和验证。
