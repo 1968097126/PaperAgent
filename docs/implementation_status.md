@@ -1,13 +1,13 @@
 # 实施状态
 
-最后更新：2026-09-04。状态只依据已提交或准备提交的代码及实际执行记录；fixture/mock 结果不作为正式指标。
+最后更新：2026-09-05。状态只依据已提交或准备提交的代码及实际执行记录；fixture/mock 结果不作为正式指标。
 
 | Phase | 状态 | 代码证据 | 测试/运行证据 |
 |---|---|---|---|
 | 1 语料库与索引 | 已完成 | `retrieval/config.py`、`retrieval/corpus.py`、`retrieval/chunking_v2.py`、`retrieval/dense_v2.py`、`retrieval/sparse_v2.py`、`retrieval/manifest.py`、`corpus/indexing.py` | `tests/test_corpus_index.py`、`tests/test_corpus_edge_cases.py`；真实建库生成 30 papers / 1,800 chunks / 1,800×1024 FAISS 向量，manifest `ready=true, stale=false` |
 | 2 混合检索与重排序 | 已完成 | `retrieval/fuse_v2.py`、`retrieval/rerank_v2.py`、`retrieval/hybrid_v2.py`、`domain_tools.py`、`tool_validation.py`、`retrieval/sanity_check.py` | `tests/test_retrieval_v2.py`、`tests/test_domain_tools.py`；三档真实检索输出 `docs/retrieval_sanity.json` |
 | 3 Harness 内核改造 | 已完成 | `agent.py`、`pipeline/trace.py`、`tool_registry.py`；保留 Provider、权限门、上下文压缩和原编程入口 | `tests/test_agent.py`、`tests/test_trace.py`、`tests/test_tool_registry.py`、`tests/test_domain_tools.py`；研究域 schema/执行双层白名单、允许/禁止/未知工具、非法参数、Provider 异常和兼容路径均有测试 |
-| 4 七阶段编排 | 进行中（Step 3/4 完成） | `pipeline/stages.py` 的七阶段 Stage（除 Orchestrator 接线）、`pipeline/memory.py` 的结构化研究记忆 | `tests/test_pipeline_stage1.py`、`tests/test_pipeline_stage2.py`、`tests/test_pipeline_stage3.py`；Orchestrator 尚未纳入 |
+| 4 七阶段编排 | 已完成（真实 Provider 验证待人工补充） | `pipeline/stages.py`、`pipeline/memory.py`、`pipeline/orchestrator.py`、`pipeline/client.py` | `tests/test_pipeline_stage1.py` 至 `tests/test_pipeline_stage4.py`；mock E2E、异常降级和微型真实索引 smoke test 已通过 |
 | 5 CLI | 未完成 | — | 尚未完成收口和真实 Provider CLI 验证 |
 | 6 评测系统 | 未完成 | — | 尚无正式全量评测结果 |
 | 7 打磨与真实结果 | 未开始 | — | — |
@@ -22,6 +22,7 @@ conda run -n nanocc python -m pytest -q tests/test_agent.py tests/test_trace.py 
 conda run -n nanocc python -m pytest -q tests/test_pipeline_stage1.py
 conda run -n nanocc python -m pytest -q tests/test_pipeline_stage2.py
 conda run -n nanocc python -m pytest -q tests/test_pipeline_stage3.py
+conda run -n nanocc python -m pytest -q tests/test_pipeline_stage4.py
 ```
 
 ## Phase 1–2 已验证事实
@@ -71,6 +72,16 @@ conda run -n nanocc python -m pytest -q tests/test_pipeline_stage3.py
 - Memory 只保存实际引用证据对应的论文、chunk 和事实；实体、限制条件及比较对象必须能从当前输入、显式历史上下文、既有记忆或检索证据中追溯。
 - 压缩独立于 nano-cc 的消息级 `compaction.py`：前者约束结构化研究事实，后者负责通用消息上下文；所有 Memory 列表均有压缩上限或硬上限。
 
+## Phase 4 Step 4 已验证事实
+
+- `ResearchPipeline` 统一执行七阶段；无需检索和安全拒绝路径也会以 `skipped` 或确定性决策补齐完整阶段 Trace。
+- Orchestrator 直接复用 `EvidenceRefiner`，不复制检索算法或二次检索循环；每次尝试的 Query、候选、证据、决策和错误均写入 `retrieval_state`。
+- 检索、重排、语义阶段、生成及损坏 Memory 状态都能降级为安全回答，并在 Trace 中区分 `error`、`degraded` 与 `skipped`。
+- 每轮完成后原子式更新消息、语义状态、检索状态、引用、研究记忆、轮次和 Trace；Provider token 使用调用前后差值，避免复用客户端时重复累计。
+- `NativeProviderClient` 将原流式 Provider 适配为阶段 completion，显式传入空工具 schema，并累计每次完成的输入/输出 token。
+- mock E2E 覆盖标准链路、二次检索上限、多轮历史、安全路由及异常降级；微型真实索引 smoke test 实际构建并加载版本化 FAISS、BM25、chunks 与 manifest，只用确定性替身隔离外部嵌入和重排模型。
+- 用户决定暂缓真实 Provider E2E；该验证不是本次 Step 4 代码收口条件，后续取得 API Key 或可用本地模型后人工补充。
+
 ## 当前外部阻塞
 
-`nanocc` 当前默认 Provider 为 Anthropic，未配置 API Key。因此 Phase 4 最终真实模型端到端验证、Phase 5 真实 CLI 验证和 Phase 6 模型相关正式评测暂时不能执行。该阻塞不影响 Phase 4 Step 1–3 的 mock/离线实现和验证。
+`nanocc` 当前默认 Provider 为 Anthropic，未配置 API Key，且本机 Ollama/LM Studio 未响应。因此真实 Provider E2E、Phase 5 真实 CLI 验证和 Phase 6 模型相关正式评测待人工补充；Phase 4 的代码、mock E2E 和离线真实索引验证已经收口。
