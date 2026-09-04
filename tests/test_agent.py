@@ -1,30 +1,28 @@
-"""Tests for agent.py — permission whitelist fix, tool_names restriction, trace recording.
-
-用 monkeypatch 替换掉 agent.stream（原本指向 providers.stream，真实调用LLM API）和
-agent.execute_tool，让测试不依赖网络/API key，只验证 run() 循环本身的控制流逻辑。
-"""
+"""Phase 3 tests for Agent state, tool scoping, permissions, and tracing."""
 from __future__ import annotations
 
-import sys
-import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import pytest
 
 import agent
-from agent import AgentState, run, ToolEnd, _check_permission
+from agent import (
+    RESEARCH_TOOL_NAMES,
+    AgentState,
+    ToolEnd,
+    _check_permission,
+    run,
+    run_research,
+)
 from providers import AssistantTurn
 
 
 def _fake_stream_sequence(turns: list[AssistantTurn]):
-    """构造一个假的 providers.stream()：按顺序依次产出turns列表里的AssistantTurn，
-    每次调用消耗一个；列表用完之后再被调用就产出一个空tool_calls的收尾轮次
-    （模拟"模型不再调用工具、直接给最终回答"），避免测试因为漏算run()内部
-    会循环几轮而导致while True死循环。
-    """
-    it = iter(turns)
+    iterator = iter(turns)
 
-    def _stream(**kwargs):
-        turn = next(it, AssistantTurn(text="done", tool_calls=[], in_tokens=1, out_tokens=1))
+    def _stream(**_kwargs):
+        turn = next(
+            iterator,
+            AssistantTurn(text="done", tool_calls=[], in_tokens=1, out_tokens=1),
+        )
         yield turn
 
     return _stream
@@ -33,122 +31,239 @@ def _fake_stream_sequence(turns: list[AssistantTurn]):
 BASE_CONFIG = {"model": "claude-opus-4-6", "permission_mode": "accept-all"}
 
 
+class TestAgentState:
+    def test_research_fields_have_isolated_defaults(self):
+        first = AgentState()
+        second = AgentState()
+
+        first.semantic_state["intent"] = "new_search"
+        first.citations.append("chunk-1")
+
+        assert second.semantic_state == {}
+        assert second.citations == []
+        assert first.memory_mode == "compressed"
+
+
 class TestCheckPermissionWhitelist:
-    """对应Phase 3步骤5：search_papers/retrieve_chunk之前漏加进auto模式的只读白名单，
-    导致每次调用都会被误判成需要用户确认——这里验证修复生效。"""
-
-    def test_search_papers_auto_approved_in_auto_mode(self):
-        tc = {"name": "search_papers", "input": {"query": "x"}}
-        assert _check_permission(tc, {"permission_mode": "auto"}) is True
-
-    def test_retrieve_chunk_auto_approved_in_auto_mode(self):
-        tc = {"name": "retrieve_chunk", "input": {"chunk_id": "x"}}
-        assert _check_permission(tc, {"permission_mode": "auto"}) is True
+    @pytest.mark.parametrize("name", RESEARCH_TOOL_NAMES)
+    def test_research_read_tools_are_auto_approved(self, name):
+        assert _check_permission(
+            {"name": name, "input": {"query": "x"}},
+            {"permission_mode": "auto"},
+        ) is True
 
     def test_write_still_requires_confirmation_in_auto_mode(self):
-        # 回归保护：确认这次修复只加了白名单条目，没有意外放宽Write/Edit的权限门槛
-        tc = {"name": "Write", "input": {"file_path": "x", "content": "y"}}
-        assert _check_permission(tc, {"permission_mode": "auto"}) is False
+        tool_call = {"name": "Write", "input": {"file_path": "x", "content": "y"}}
+        assert _check_permission(tool_call, {"permission_mode": "auto"}) is False
 
 
 class TestToolNameWhitelist:
-    """对应Phase 3步骤3/4：run()的tool_names参数不仅要让LLM看不到白名单外的schema，
-    真的调用了也要在执行前被拦下。"""
+    def test_research_entry_exposes_only_domain_tool_schemas(self, monkeypatch):
+        observed = {}
 
-    def test_call_outside_whitelist_is_blocked_not_executed(self, monkeypatch):
+        def capture_stream(**kwargs):
+            observed["schemas"] = kwargs["tool_schemas"]
+            yield AssistantTurn(text="done", tool_calls=[], in_tokens=1, out_tokens=1)
+
+        monkeypatch.setattr(agent, "stream", capture_stream)
+        list(run_research("paper question", AgentState(), BASE_CONFIG, "system"))
+
+        assert tuple(schema["name"] for schema in observed["schemas"]) == RESEARCH_TOOL_NAMES
+
+    def test_call_outside_whitelist_is_blocked_before_dispatch(self, monkeypatch):
         executed = []
-        monkeypatch.setattr(agent, "execute_tool",
-                             lambda *a, **k: executed.append(a) or "should not run")
-        monkeypatch.setattr(agent, "stream", _fake_stream_sequence([
-            AssistantTurn(text="", tool_calls=[
-                {"id": "1", "name": "Bash", "input": {"command": "echo hi"}},
-            ], in_tokens=10, out_tokens=5),
-        ]))
+        monkeypatch.setattr(
+            agent,
+            "execute_tool",
+            lambda *args, **_kwargs: executed.append(args) or "should not run",
+        )
+        monkeypatch.setattr(
+            agent,
+            "stream",
+            _fake_stream_sequence(
+                [
+                    AssistantTurn(
+                        text="",
+                        tool_calls=[{"id": "1", "name": "Bash", "input": {"command": "echo hi"}}],
+                        in_tokens=10,
+                        out_tokens=5,
+                    )
+                ]
+            ),
+        )
 
         state = AgentState()
-        events = list(run("hi", state, BASE_CONFIG, "system", tool_names=["search_papers"]))
+        events = list(run_research("hi", state, BASE_CONFIG, "system"))
+        tool_ends = [event for event in events if isinstance(event, ToolEnd)]
 
-        tool_ends = [e for e in events if isinstance(e, ToolEnd)]
         assert len(tool_ends) == 1
         assert tool_ends[0].permitted is False
         assert "not available" in tool_ends[0].result
-        assert executed == []   # execute_tool从未被真正调用到
+        assert executed == []
+        assert state.turn_traces[0].status == "degraded"
+        assert state.turn_traces[0].stages[1].status == "blocked"
 
     def test_call_inside_whitelist_executes_normally(self, monkeypatch):
-        monkeypatch.setattr(agent, "execute_tool", lambda *a, **k: "ok result")
-        monkeypatch.setattr(agent, "stream", _fake_stream_sequence([
-            AssistantTurn(text="", tool_calls=[
-                {"id": "1", "name": "search_papers", "input": {"query": "x"}},
-            ], in_tokens=10, out_tokens=5),
-        ]))
+        monkeypatch.setattr(agent, "execute_tool", lambda *args, **kwargs: "ok result")
+        monkeypatch.setattr(
+            agent,
+            "stream",
+            _fake_stream_sequence(
+                [
+                    AssistantTurn(
+                        text="",
+                        tool_calls=[{"id": "1", "name": "search_papers", "input": {"query": "x"}}],
+                        in_tokens=10,
+                        out_tokens=5,
+                    )
+                ]
+            ),
+        )
 
-        state = AgentState()
-        events = list(run("hi", state, BASE_CONFIG, "system", tool_names=["search_papers"]))
+        events = list(run_research("hi", AgentState(), BASE_CONFIG, "system"))
+        tool_ends = [event for event in events if isinstance(event, ToolEnd)]
 
-        tool_ends = [e for e in events if isinstance(e, ToolEnd)]
-        assert len(tool_ends) == 1
         assert tool_ends[0].result == "ok result"
+        assert tool_ends[0].permitted is True
 
-    def test_tool_names_none_keeps_backward_compatible_behavior(self, monkeypatch):
-        # 不传tool_names（默认None）时，任何工具名都不该被白名单机制拦下——
-        # 这保证了nano_claude.py现有的编程助手用法不受Phase 3改动影响
-        monkeypatch.setattr(agent, "execute_tool", lambda *a, **k: "ok")
-        monkeypatch.setattr(agent, "stream", _fake_stream_sequence([
-            AssistantTurn(text="", tool_calls=[
-                {"id": "1", "name": "Bash", "input": {"command": "echo hi"}},
-            ], in_tokens=10, out_tokens=5),
-        ]))
+    def test_unknown_tool_returns_error_without_crashing(self, monkeypatch):
+        monkeypatch.setattr(
+            agent,
+            "stream",
+            _fake_stream_sequence(
+                [
+                    AssistantTurn(
+                        text="",
+                        tool_calls=[{"id": "1", "name": "unknown_tool", "input": {}}],
+                        in_tokens=1,
+                        out_tokens=1,
+                    )
+                ]
+            ),
+        )
 
-        state = AgentState()
-        events = list(run("hi", state, BASE_CONFIG, "system"))
+        events = list(run("hi", AgentState(), BASE_CONFIG, "system"))
+        tool_end = next(event for event in events if isinstance(event, ToolEnd))
 
-        tool_ends = [e for e in events if isinstance(e, ToolEnd)]
-        assert tool_ends[0].result == "ok"
+        assert tool_end.result == "Error: tool 'unknown_tool' not found."
+
+    def test_invalid_domain_arguments_return_stable_error(self, monkeypatch):
+        monkeypatch.setattr(
+            agent,
+            "stream",
+            _fake_stream_sequence(
+                [
+                    AssistantTurn(
+                        text="",
+                        tool_calls=[{"id": "1", "name": "search_papers", "input": {}}],
+                        in_tokens=1,
+                        out_tokens=1,
+                    )
+                ]
+            ),
+        )
+
+        events = list(run_research("hi", AgentState(), BASE_CONFIG, "system"))
+        tool_end = next(event for event in events if isinstance(event, ToolEnd))
+
+        assert tool_end.result.startswith("Error: invalid arguments for tool 'search_papers'")
+
+    def test_tool_names_none_preserves_coding_mode(self, monkeypatch):
+        monkeypatch.setattr(agent, "execute_tool", lambda *args, **kwargs: "ok")
+        monkeypatch.setattr(
+            agent,
+            "stream",
+            _fake_stream_sequence(
+                [
+                    AssistantTurn(
+                        text="",
+                        tool_calls=[{"id": "1", "name": "Bash", "input": {"command": "echo hi"}}],
+                        in_tokens=10,
+                        out_tokens=5,
+                    )
+                ]
+            ),
+        )
+
+        events = list(run("hi", AgentState(), BASE_CONFIG, "system"))
+        tool_end = next(event for event in events if isinstance(event, ToolEnd))
+
+        assert tool_end.result == "ok"
+
+    def test_invalid_scope_is_rejected(self):
+        with pytest.raises(ValueError, match="non-empty strings"):
+            list(run("hi", AgentState(), BASE_CONFIG, "system", tool_names=[""]))
 
 
 class TestTraceRecording:
-    """对应Phase 3步骤1/2：run()应该把这一轮的LLM调用和工具调用都记进state.turn_traces。"""
-
-    def test_run_appends_one_turn_trace(self, monkeypatch):
-        monkeypatch.setattr(agent, "stream", _fake_stream_sequence([
-            AssistantTurn(text="hello", tool_calls=[], in_tokens=3, out_tokens=2),
-        ]))
+    def test_run_appends_finished_turn_trace(self, monkeypatch):
+        monkeypatch.setattr(
+            agent,
+            "stream",
+            _fake_stream_sequence(
+                [AssistantTurn(text="hello", tool_calls=[], in_tokens=3, out_tokens=2)]
+            ),
+        )
 
         state = AgentState()
         list(run("hi there", state, BASE_CONFIG, "system"))
 
-        assert len(state.turn_traces) == 1
-        assert state.turn_traces[0].user_message == "hi there"
-        assert state.turn_traces[0].stages[0].stage == "assistant_turn"
-        assert state.turn_traces[0].stages[0].output == "hello"
+        trace = state.turn_traces[0]
+        assert trace.user_message == "hi there"
+        assert trace.status == "ok"
+        assert trace.ended_at is not None
+        assert trace.stages[0].stage == "assistant_turn"
+        assert trace.stages[0].output == "hello"
 
-    def test_tool_call_recorded_as_stage(self, monkeypatch):
-        monkeypatch.setattr(agent, "execute_tool", lambda *a, **k: "search result")
-        monkeypatch.setattr(agent, "stream", _fake_stream_sequence([
-            AssistantTurn(text="", tool_calls=[
-                {"id": "1", "name": "search_papers", "input": {"query": "x"}},
-            ], in_tokens=10, out_tokens=5),
-        ]))
+    def test_tool_call_is_recorded_as_stage(self, monkeypatch):
+        monkeypatch.setattr(agent, "execute_tool", lambda *args, **kwargs: "search result")
+        monkeypatch.setattr(
+            agent,
+            "stream",
+            _fake_stream_sequence(
+                [
+                    AssistantTurn(
+                        text="",
+                        tool_calls=[{"id": "1", "name": "search_papers", "input": {"query": "x"}}],
+                        in_tokens=10,
+                        out_tokens=5,
+                    )
+                ]
+            ),
+        )
 
         state = AgentState()
         list(run("hi", state, BASE_CONFIG, "system"))
 
-        stage_names = [s.stage for s in state.turn_traces[0].stages]
-        assert "tool:search_papers" in stage_names
+        assert "tool:search_papers" in [stage.stage for stage in state.turn_traces[0].stages]
 
-    def test_multiple_run_calls_accumulate_separate_traces(self, monkeypatch):
-        monkeypatch.setattr(agent, "stream", _fake_stream_sequence([
-            AssistantTurn(text="first", tool_calls=[], in_tokens=1, out_tokens=1),
-        ]))
+    def test_multiple_runs_accumulate_separate_traces(self, monkeypatch):
         state = AgentState()
-        list(run("first message", state, BASE_CONFIG, "system"))
+        for message in ("first", "second"):
+            monkeypatch.setattr(
+                agent,
+                "stream",
+                _fake_stream_sequence(
+                    [AssistantTurn(text=message, tool_calls=[], in_tokens=1, out_tokens=1)]
+                ),
+            )
+            list(run(message, state, BASE_CONFIG, "system"))
 
-        monkeypatch.setattr(agent, "stream", _fake_stream_sequence([
-            AssistantTurn(text="second", tool_calls=[], in_tokens=1, out_tokens=1),
-        ]))
-        list(run("second message", state, BASE_CONFIG, "system"))
+        assert [trace.turn_index for trace in state.turn_traces] == [0, 1]
+        assert state.turn_traces[1].user_message == "second"
 
-        assert len(state.turn_traces) == 2
-        assert state.turn_traces[0].turn_index == 0
-        assert state.turn_traces[1].turn_index == 1
-        assert state.turn_traces[1].user_message == "second message"
+    def test_provider_exception_is_traced_then_reraised(self, monkeypatch):
+        def failing_stream(**_kwargs):
+            raise RuntimeError("provider unavailable")
+            yield
+
+        monkeypatch.setattr(agent, "stream", failing_stream)
+        state = AgentState()
+
+        with pytest.raises(RuntimeError, match="provider unavailable"):
+            list(run("hi", state, BASE_CONFIG, "system"))
+
+        assert len(state.turn_traces) == 1
+        assert state.turn_traces[0].status == "error"
+        assert state.turn_traces[0].stages[0].status == "error"
+        assert "provider unavailable" in state.turn_traces[0].stages[0].error

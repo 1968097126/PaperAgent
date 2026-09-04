@@ -15,10 +15,13 @@ from tool_registry import (
 
 @pytest.fixture(autouse=True)
 def _clean_registry():
-    """Reset registry before each test."""
+    """Isolate each test and restore the process-wide registry afterwards."""
+    original_tools = get_all_tools()
     clear_registry()
     yield
     clear_registry()
+    for tool in original_tools:
+        register_tool(tool)
 
 
 def _make_echo_tool(name: str = "echo", read_only: bool = False) -> ToolDef:
