@@ -9,7 +9,7 @@
 | 3 Harness 内核改造 | 已完成 | `agent.py`、`pipeline/trace.py`、`tool_registry.py`；保留 Provider、权限门、上下文压缩和原编程入口 | `tests/test_agent.py`、`tests/test_trace.py`、`tests/test_tool_registry.py`、`tests/test_domain_tools.py`；研究域 schema/执行双层白名单、允许/禁止/未知工具、非法参数、Provider 异常和兼容路径均有测试 |
 | 4 七阶段编排 | 已完成 | `pipeline/stages.py`、`pipeline/memory.py`、`pipeline/orchestrator.py`、`pipeline/client.py`、`providers.py` | mock/异常/真实索引测试已通过；DeepSeek V4 Flash 真实七阶段回答与 OpenAI GPT-5.6 Luna completion 已验证 |
 | 5 CLI | 已完成 | `nano_claude.py`、`research_cli.py` | `tests/test_research_cli.py`；mock Provider 完整跑通一轮七阶段，真实语料 `/corpus` smoke test 已验证 |
-| 6 评测系统 | 未完成 | — | 尚无正式全量评测结果 |
+| 6 评测系统 | 已完成 | `eval/datasets.py`、`eval/metrics.py`、`eval/run_evaluation.py`、`eval/validate_datasets.py`、`eval/data/*.jsonl` | `tests/test_eval.py`；真实语料绑定的 M/I/R/B/E 严格校验通过，正式 Provider 指标留待 Phase 7 |
 | 7 打磨与真实结果 | 未开始 | — | — |
 
 ## 当前可复现命令
@@ -26,6 +26,9 @@ conda run -n nanocc python -m pytest -q tests/test_pipeline_stage4.py
 conda run -n nanocc python -m pytest -q tests/test_provider_updates.py
 conda run -n nanocc python -m pytest -q tests/test_research_cli.py
 conda run -n nanocc python nano_claude.py --help
+conda run -n nanocc python -m pytest -q tests/test_eval.py
+conda run -n nanocc python -m eval.validate_datasets --data-dir eval/data --chunks corpus/chunks.jsonl
+conda run -n nanocc python -m eval.run_evaluation --suite datasets --build-datasets --seed 42
 ```
 
 ## Phase 1–2 已验证事实
@@ -100,3 +103,13 @@ conda run -n nanocc python nano_claude.py --help
 - `/clear` 同步清空研究状态；`/save` 与 `/load` 持久化并恢复语义、检索、引用和 Memory 状态；`/config` 的 Provider Key 在列表、查询和设置回显中均被遮蔽。
 - mock Provider 集成测试从 CLI 入口跑通 Guardrails → NLU → Retrieve → Rerank → Reflect → Generate → Memory，并断言 CLI 未重复累计 Orchestrator 已记录的 token。
 - 按用户要求，本步骤不重新进行付费 Provider CLI 调用；Phase 4 已完成 DeepSeek V4 与 OpenAI Provider 的真实接口验证，后续可在重新导出环境变量后人工执行 CLI 验收。
+
+## Phase 6 已验证事实
+
+- M/I/R/B/E 共 445 行物理记录；E 的 70 行严格派生自 M，因此独立范围统计不重复相加。全部记录明确标记为 `synthetic_grounded_in_real_corpus`，不得称为人工标注。
+- M 严格包含 30 组四轮对话及指定五类意图分布；46 个改写、24 个二次检索、24 个拒答和 12 个跨论文比较是允许重叠的属性。
+- 所有检索 ground truth 都是当前 1,800 个真实 chunk 之一；6 个证据不足问题使用唯一表格标记，验证器确认标记未出现在语料正文中。
+- 验证器覆盖字段类型、稳定/唯一 ID、对话轮次、精确分布、E⊂M 内容一致性、引用存在性、比较对象数量及拒答标签一致性。
+- 指标覆盖 Intent confusion matrix、非全文匹配的 Query 改写保留率、三档 Recall@1/5/10、Guardrails、Reflect on/off、引用 validity/precision/recall、Pipeline 合取成功率、Memory 三态和 token/context 开销。
+- 每项指标分别报告 evaluated、failed、skipped 和 unevaluable；逐样本与汇总输出支持 JSONL、JSON、CSV 和 Markdown，运行配置记录 seed、模型、Provider、索引 manifest、检索配置及数据来源。
+- `datasets` suite 不需要索引 manifest 或 API Key；`provider`/`all` 在凭据缺失时会在模型调用前明确失败。Phase 6 不发布百分比，真实全量评测和人工复核属于 Phase 7。

@@ -65,6 +65,7 @@ A minimal Python implementation of Claude Code in ~900 lines (Initial version), 
   * [Model Name Format](#model-name-format)
   * [CLI Reference](#cli-reference)
   * [Slash Commands (REPL)](#slash-commands--repl-)
+  * [Evaluation](#evaluation)
   * [Configuring API Keys](#configuring-api-keys)
     + [Method 1: Environment Variables (recommended)](#method-1--environment-variables--recommended-)
     + [Method 2: Set Inside the REPL (persisted)](#method-2--set-inside-the-repl--persisted-)
@@ -518,6 +519,32 @@ Type `/` and press **Tab** to autocomplete.
 [myproject] ❯ /model ollama/qwen2.5-coder
   Model set to ollama/qwen2.5-coder  (provider: ollama)
 ```
+
+---
+
+## Evaluation
+
+Phase 6 includes five deterministic JSONL datasets and strict validation. They are
+**synthetic annotations grounded in real corpus chunk IDs**, not human-labelled data.
+E is a 70-turn subset of M and is not counted twice when reporting dataset scope.
+
+```bash
+# Rebuild and validate M/I/R/B/E without calling a Provider
+conda run -n nanocc python -m eval.run_evaluation \
+  --suite datasets --build-datasets --seed 42
+conda run -n nanocc python -m eval.validate_datasets \
+  --data-dir eval/data --chunks corpus/chunks.jsonl
+
+# Local dense vs hybrid vs hybrid+rerank evaluation
+conda run -n nanocc python -m eval.run_evaluation \
+  --suite retrieval --device cpu --seed 42 \
+  --output-dir eval/results/retrieval
+```
+
+Provider-backed Intent, Rewrite, Guardrails, Reflect, E2E, citation, Memory, and token
+evaluations use `--suite provider` or `--suite all` and require the selected Provider's
+environment variable. See [`docs/evaluation.md`](docs/evaluation.md) for schemas,
+metric definitions, output files, and current limitations.
 
 ---
 
