@@ -1,22 +1,28 @@
 """Tests for compaction.py — token estimation, context limits, snipping, split point."""
+
 from __future__ import annotations
 
-import sys
 import os
+import sys
 
 # Ensure project root is on sys.path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from compaction import estimate_tokens, get_context_limit, snip_old_tool_results, find_split_point
-
+from compaction import (
+    estimate_tokens,
+    find_split_point,
+    get_context_limit,
+    snip_old_tool_results,
+)
 
 # ── estimate_tokens ───────────────────────────────────────────────────────
+
 
 class TestEstimateTokens:
     def test_simple_messages(self):
         msgs = [
-            {"role": "user", "content": "Hello world"},          # 11 chars
-            {"role": "assistant", "content": "Hi there!"},       # 9 chars
+            {"role": "user", "content": "Hello world"},  # 11 chars
+            {"role": "assistant", "content": "Hi there!"},  # 9 chars
         ]
         result = estimate_tokens(msgs)
         # (11 + 9) / 3.5 = 5.71 -> 5
@@ -31,7 +37,12 @@ class TestEstimateTokens:
 
     def test_tool_result_messages(self):
         msgs = [
-            {"role": "tool", "tool_call_id": "abc", "name": "Read", "content": "x" * 350},
+            {
+                "role": "tool",
+                "tool_call_id": "abc",
+                "name": "Read",
+                "content": "x" * 350,
+            },
         ]
         result = estimate_tokens(msgs)
         assert result == int(350 / 3.5)
@@ -67,6 +78,7 @@ class TestEstimateTokens:
 
 # ── get_context_limit ─────────────────────────────────────────────────────
 
+
 class TestGetContextLimit:
     def test_anthropic(self):
         assert get_context_limit("claude-opus-4-6") == 200000
@@ -93,13 +105,19 @@ class TestGetContextLimit:
 
 # ── snip_old_tool_results ─────────────────────────────────────────────────
 
+
 class TestSnipOldToolResults:
     def test_old_tool_results_get_truncated(self):
         long_content = "A" * 5000
         msgs = [
             {"role": "user", "content": "hello"},
             {"role": "assistant", "content": "let me check", "tool_calls": []},
-            {"role": "tool", "tool_call_id": "t1", "name": "Read", "content": long_content},
+            {
+                "role": "tool",
+                "tool_call_id": "t1",
+                "name": "Read",
+                "content": long_content,
+            },
             {"role": "user", "content": "thanks"},
             {"role": "assistant", "content": "you're welcome"},
             {"role": "user", "content": "bye"},
@@ -119,10 +137,15 @@ class TestSnipOldToolResults:
         msgs = [
             {"role": "user", "content": "hello"},
             {"role": "assistant", "content": "ok", "tool_calls": []},
-            {"role": "tool", "tool_call_id": "t1", "name": "Read", "content": long_content},
+            {
+                "role": "tool",
+                "tool_call_id": "t1",
+                "name": "Read",
+                "content": long_content,
+            },
         ]
         # All 3 messages are within preserve_last_n_turns=6
-        result = snip_old_tool_results(msgs, max_chars=2000, preserve_last_n_turns=6)
+        snip_old_tool_results(msgs, max_chars=2000, preserve_last_n_turns=6)
         assert msgs[2]["content"] == long_content  # not truncated
 
     def test_short_tool_results_not_touched(self):
@@ -153,6 +176,7 @@ class TestSnipOldToolResults:
 
 
 # ── find_split_point ──────────────────────────────────────────────────────
+
 
 class TestFindSplitPoint:
     def test_returns_reasonable_index(self):

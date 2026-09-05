@@ -10,7 +10,7 @@
 | 4 七阶段编排 | 已完成 | `pipeline/stages.py`、`pipeline/memory.py`、`pipeline/orchestrator.py`、`pipeline/client.py`、`providers.py` | mock/异常/真实索引测试已通过；DeepSeek V4 Flash 真实七阶段回答与 OpenAI GPT-5.6 Luna completion 已验证 |
 | 5 CLI | 已完成 | `nano_claude.py`、`research_cli.py` | `tests/test_research_cli.py`；mock Provider 完整跑通一轮七阶段，真实语料 `/corpus` smoke test 已验证 |
 | 6 评测系统 | 已完成 | `eval/datasets.py`、`eval/metrics.py`、`eval/run_evaluation.py`、`eval/validate_datasets.py`、`eval/data/*.jsonl` | `tests/test_eval.py`；真实语料绑定的 M/I/R/B/E 严格校验通过，正式 Provider 指标留待 Phase 7 |
-| 7 打磨与真实结果 | 未开始 | — | — |
+| 7 打磨与真实结果 | 进行中：收尾阶段 1 已完成 | `docs/final_audit.md`、`tests/test_pipeline.py`；冻结 Phase 1–6 的运行时接口，不提前写入正式评测结果 | 全量回归、Phase 1–6 目标模块静态检查、数据集校验与离线 smoke test 均通过；人工复核和正式 Provider 评测留待后续收尾阶段 |
 
 ## 当前可复现命令
 
@@ -23,6 +23,7 @@ conda run -n nanocc python -m pytest -q tests/test_pipeline_stage1.py
 conda run -n nanocc python -m pytest -q tests/test_pipeline_stage2.py
 conda run -n nanocc python -m pytest -q tests/test_pipeline_stage3.py
 conda run -n nanocc python -m pytest -q tests/test_pipeline_stage4.py
+conda run -n nanocc python -m pytest -q tests/test_pipeline.py
 conda run -n nanocc python -m pytest -q tests/test_provider_updates.py
 conda run -n nanocc python -m pytest -q tests/test_research_cli.py
 conda run -n nanocc python nano_claude.py --help
@@ -113,3 +114,11 @@ conda run -n nanocc python -m eval.run_evaluation --suite datasets --build-datas
 - 指标覆盖 Intent confusion matrix、非全文匹配的 Query 改写保留率、三档 Recall@1/5/10、Guardrails、Reflect on/off、引用 validity/precision/recall、Pipeline 合取成功率、Memory 三态和 token/context 开销。
 - 每项指标分别报告 evaluated、failed、skipped 和 unevaluable；逐样本与汇总输出支持 JSONL、JSON、CSV 和 Markdown，运行配置记录 seed、模型、Provider、索引 manifest、检索配置及数据来源。
 - `datasets` suite 不需要索引 manifest 或 API Key；`provider`/`all` 在凭据缺失时会在模型调用前明确失败。Phase 6 不发布百分比，真实全量评测和人工复核属于 Phase 7。
+
+## Phase 7 收尾阶段 1 已验证事实
+
+- 已审计运行时代码中的 TODO、FIXME、`NotImplementedError` 和空实现；唯一 TODO 命中是继承演示文案，`pass` 命中均属于异常容错或异常类型声明，不是功能占位。
+- `pipeline/stages.py` 的遗留内容确认为 Ruff 机械格式化，并恢复了覆盖全部七阶段的准确模块说明；没有改变阶段行为。
+- 原未跟踪的 `tests/test_pipeline.py` 已整理为最终七阶段回归 smoke suite，覆盖结构化修复、安全 fallback、阶段顺序、二次检索硬上限、引用校验和 Memory 三态。
+- Phase 1–6 的公共入口、七阶段顺序、Provider 适配、状态更新、数据集校验与 CLI 路径均纳入最终审计矩阵；结论与剩余门槛见 `docs/final_audit.md`。
+- 本阶段不调用付费 Provider、不修改评测标注来源，也不发布正式百分比；人工复核、正式评测和发布文档仍按后续阶段独立提交。

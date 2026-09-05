@@ -1,4 +1,5 @@
 """Independently testable stages for evidence-grounded research-paper QA."""
+
 from __future__ import annotations
 
 import json
@@ -11,9 +12,12 @@ from pipeline.memory import ResearchMemory
 from pipeline.trace import Timer, TurnTrace
 
 REFLECT_ACTIONS = frozenset({"answer", "retrieve_again", "clarify", "refuse"})
-CITATION_PATTERN = re.compile(r"\[([^\[\]\/\s]+)/([^\[\]\/\s]+)\]")
+CITATION_PATTERN = re.compile(r"\[([^\[\]/\s]+)/([^\[\]/\s]+)\]")
+
 GUARDRAIL_ACTIONS = frozenset({"allow", "clarify", "refuse"})
-INTENTS = frozenset({"new_search", "follow_up", "clarification", "meta", "out_of_scope"})
+INTENTS = frozenset(
+    {"new_search", "follow_up", "clarification", "meta", "out_of_scope"}
+)
 RETRIEVAL_INTENTS = frozenset({"new_search", "follow_up"})
 INJECTION_SIGNALS = (
     "ignore previous instructions",
@@ -39,7 +43,9 @@ class StageCompletionError(RuntimeError):
     """Raised when the underlying Provider fails before producing stage output."""
 
     def __init__(self, stage: str, attempt: int, cause: Exception):
-        super().__init__(f"{stage} completion failed on attempt {attempt}: {type(cause).__name__}: {cause}")
+        super().__init__(
+            f"{stage} completion failed on attempt {attempt}: {type(cause).__name__}: {cause}"
+        )
         self.stage = stage
         self.attempt = attempt
 
@@ -49,7 +55,9 @@ def parse_json_object(text: str) -> dict[str, Any]:
     if not isinstance(text, str):
         raise StageParseError("model output must be a string")
     candidate = text.strip()
-    fenced = re.fullmatch(r"```(?:json)?\s*(.*?)\s*```", candidate, re.DOTALL | re.IGNORECASE)
+    fenced = re.fullmatch(
+        r"```(?:json)?\s*(.*?)\s*```", candidate, re.DOTALL | re.IGNORECASE
+    )
     if fenced:
         candidate = fenced.group(1)
     try:
@@ -92,7 +100,9 @@ def structured_completion(
                     f"Your previous output was invalid: {exc}. Return ONLY a corrected JSON object.\n"
                     f"Original task:\n{prompt}\nInvalid output:\n{raw}"
                 )
-    raise StageParseError(f"structured output remained invalid after one repair: {last_error}")
+    raise StageParseError(
+        f"structured output remained invalid after one repair: {last_error}"
+    )
 
 
 def _required_string(value: Any, field: str) -> str:
@@ -102,7 +112,9 @@ def _required_string(value: Any, field: str) -> str:
 
 
 def _string_list(value: Any, field: str) -> list[str]:
-    if not isinstance(value, list) or any(not isinstance(item, str) or not item.strip() for item in value):
+    if not isinstance(value, list) or any(
+        not isinstance(item, str) or not item.strip() for item in value
+    ):
         raise TypeError(f"{field} must be a list of non-empty strings")
     return list(dict.fromkeys(item.strip() for item in value))
 
@@ -125,15 +137,21 @@ def _nlu_schema(value: dict[str, Any]) -> dict[str, Any]:
         raise TypeError("needs_retrieval must be boolean")
     expected_retrieval = intent in RETRIEVAL_INTENTS
     if needs_retrieval != expected_retrieval:
-        raise ValueError(f"intent {intent!r} requires needs_retrieval={expected_retrieval}")
+        raise ValueError(
+            f"intent {intent!r} requires needs_retrieval={expected_retrieval}"
+        )
     return {
         "intent": intent,
         "standalone_query": standalone_query,
-        "resolved_references": _string_list(value.get("resolved_references", []), "resolved_references"),
+        "resolved_references": _string_list(
+            value.get("resolved_references", []), "resolved_references"
+        ),
         "needs_retrieval": needs_retrieval,
         "reason": _required_string(value.get("reason"), "reason"),
         "constraints": _string_list(value.get("constraints", []), "constraints"),
-        "comparison_targets": _string_list(value.get("comparison_targets", []), "comparison_targets"),
+        "comparison_targets": _string_list(
+            value.get("comparison_targets", []), "comparison_targets"
+        ),
     }
 
 
@@ -147,7 +165,11 @@ def _traceable_context(
     memory: Mapping[str, Any],
 ) -> str:
     source = json.dumps(
-        {"user_message": user_message, "history": list(history), "memory": dict(memory)},
+        {
+            "user_message": user_message,
+            "history": list(history),
+            "memory": dict(memory),
+        },
         ensure_ascii=False,
         sort_keys=True,
         default=str,
@@ -155,7 +177,9 @@ def _traceable_context(
     return _normalize_for_traceability(source)
 
 
-def _validate_nlu_traceability(value: dict[str, Any], source_context: str) -> dict[str, Any]:
+def _validate_nlu_traceability(
+    value: dict[str, Any], source_context: str
+) -> dict[str, Any]:
     declared = {
         "resolved_references": value["resolved_references"],
         "constraints": value["constraints"],
@@ -168,7 +192,9 @@ def _validate_nlu_traceability(value: dict[str, Any], source_context: str) -> di
             if not normalized or normalized not in source_context:
                 raise ValueError(f"{field} contains untraceable value: {item!r}")
             if normalized not in query_context:
-                raise ValueError(f"standalone_query does not preserve {field} value: {item!r}")
+                raise ValueError(
+                    f"standalone_query does not preserve {field} value: {item!r}"
+                )
     return value
 
 
@@ -216,7 +242,9 @@ class GuardrailsStage:
             f"Request: {message}"
         )
         try:
-            value, attempts = structured_completion(self.client, "Guardrails", prompt, _guardrail_schema)
+            value, attempts = structured_completion(
+                self.client, "Guardrails", prompt, _guardrail_schema
+            )
             return {**value, "source": "model", "parse_attempts": len(attempts)}
         except StageParseError as exc:
             return {
@@ -278,7 +306,11 @@ class NLUStage:
                 "comparison_targets": [],
                 "source": "fallback",
             }
-        recent_history = list(history[-self.max_history_messages :]) if self.max_history_messages else []
+        recent_history = (
+            list(history[-self.max_history_messages :])
+            if self.max_history_messages
+            else []
+        )
         source_context = _traceable_context(message, recent_history, memory)
         prompt = (
             "Classify exactly one intent: new_search, follow_up, clarification, meta, or out_of_scope. "
@@ -297,7 +329,9 @@ class NLUStage:
             return _validate_nlu_traceability(_nlu_schema(value), source_context)
 
         try:
-            value, attempts = structured_completion(self.client, "NLU", prompt, validate)
+            value, attempts = structured_completion(
+                self.client, "NLU", prompt, validate
+            )
             return {**value, "source": "model", "parse_attempts": len(attempts)}
         except StageParseError as exc:
             return self._fallback(
