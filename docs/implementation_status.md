@@ -8,7 +8,7 @@
 | 2 混合检索与重排序 | 已完成 | `retrieval/fuse_v2.py`、`retrieval/rerank_v2.py`、`retrieval/hybrid_v2.py`、`domain_tools.py`、`tool_validation.py`、`retrieval/sanity_check.py` | `tests/test_retrieval_v2.py`、`tests/test_domain_tools.py`；三档真实检索输出 `docs/retrieval_sanity.json` |
 | 3 Harness 内核改造 | 已完成 | `agent.py`、`pipeline/trace.py`、`tool_registry.py`；保留 Provider、权限门、上下文压缩和原编程入口 | `tests/test_agent.py`、`tests/test_trace.py`、`tests/test_tool_registry.py`、`tests/test_domain_tools.py`；研究域 schema/执行双层白名单、允许/禁止/未知工具、非法参数、Provider 异常和兼容路径均有测试 |
 | 4 七阶段编排 | 已完成 | `pipeline/stages.py`、`pipeline/memory.py`、`pipeline/orchestrator.py`、`pipeline/client.py`、`providers.py` | mock/异常/真实索引测试已通过；DeepSeek V4 Flash 真实七阶段回答与 OpenAI GPT-5.6 Luna completion 已验证 |
-| 5 CLI | 未完成 | — | 尚未完成收口和真实 Provider CLI 验证 |
+| 5 CLI | 已完成 | `nano_claude.py`、`research_cli.py` | `tests/test_research_cli.py`；mock Provider 完整跑通一轮七阶段，真实语料 `/corpus` smoke test 已验证 |
 | 6 评测系统 | 未完成 | — | 尚无正式全量评测结果 |
 | 7 打磨与真实结果 | 未开始 | — | — |
 
@@ -24,6 +24,8 @@ conda run -n nanocc python -m pytest -q tests/test_pipeline_stage2.py
 conda run -n nanocc python -m pytest -q tests/test_pipeline_stage3.py
 conda run -n nanocc python -m pytest -q tests/test_pipeline_stage4.py
 conda run -n nanocc python -m pytest -q tests/test_provider_updates.py
+conda run -n nanocc python -m pytest -q tests/test_research_cli.py
+conda run -n nanocc python nano_claude.py --help
 ```
 
 ## Phase 1–2 已验证事实
@@ -88,3 +90,13 @@ conda run -n nanocc python -m pytest -q tests/test_provider_updates.py
 ## 当前外部配置
 
 真实验证使用了用户临时提供的 OpenAI/DeepSeek 凭据；仓库已恢复为 `OPENAI_API_KEY` 与 `DEEPSEEK_API_KEY` 环境变量引用，没有保留或提交任何密钥。后续真实 CLI 或正式评测前需要重新导出相应环境变量。
+
+## Phase 5 已验证事实
+
+- `nano_claude.py` 默认进入科研论文问答模式，并保留 `--coding` 作为继承编程 Agent 的显式离线开发入口；研究模式不进入工具 diff 等编程展示链路。
+- `/trace [turn_id]` 支持最新轮次、轮次序号和稳定 turn ID，输出七阶段详情；空 Trace、不存在轮次和损坏 Trace 返回稳定错误对象。
+- `/corpus` 汇总论文数、chunk 数、索引 ready/stale/缺失状态、索引文件、版本、Dense/Reranker 模型和 device；空语料、部分索引和损坏 chunks 均有测试。
+- `/memory [off|on|compressed]` 展示结构化记忆、估算 token、更新次数、压缩次数与当前压缩状态，并支持三态切换。
+- `/clear` 同步清空研究状态；`/save` 与 `/load` 持久化并恢复语义、检索、引用和 Memory 状态；`/config` 的 Provider Key 在列表、查询和设置回显中均被遮蔽。
+- mock Provider 集成测试从 CLI 入口跑通 Guardrails → NLU → Retrieve → Rerank → Reflect → Generate → Memory，并断言 CLI 未重复累计 Orchestrator 已记录的 token。
+- 按用户要求，本步骤不重新进行付费 Provider CLI 调用；Phase 4 已完成 DeepSeek V4 与 OpenAI Provider 的真实接口验证，后续可在重新导出环境变量后人工执行 CLI 验收。

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Nano Claude Code — Minimal Python implementation of Claude Code.
+Nano Research Agent — evidence-grounded paper QA built on nano-cc.
 
 Usage:
   python nano_claude.py [options] [prompt]
@@ -10,6 +10,7 @@ Options:
   -m, --model MODEL    Override model
   --accept-all         Never ask permission (dangerous)
   --verbose            Show thinking + token counts
+  --coding             Use the inherited coding-agent loop instead of research mode
   --version            Print version and exit
 
 Slash commands in REPL:
@@ -21,6 +22,9 @@ Slash commands in REPL:
   /load [f]   Load session from file
   /history    Print conversation history
   /context    Show context window usage
+  /trace [id] Show one seven-stage pipeline trace
+  /corpus     Show corpus and index status
+  /memory [mode] Show memory or set off/on/compressed
   /cost       Show API cost this session
   /verbose    Toggle verbose mode
   /thinking   Toggle extended thinking
@@ -30,24 +34,23 @@ Slash commands in REPL:
 """
 from __future__ import annotations
 
-import os
-import sys
-import json
-import readline
-import atexit
 import argparse
-import textwrap
+import atexit
+import json
+import os
+import readline
+import sys
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime
-from typing import Optional
+from typing import Any
+
+from research_cli import cmd_corpus, cmd_memory, cmd_trace
 
 # ── Optional rich for markdown rendering ──────────────────────────────────
 try:
     from rich.console import Console
     from rich.markdown import Markdown
-    from rich.syntax import Syntax
-    from rich.panel import Panel
-    from rich import print as rprint
+
     _RICH = True
     console = Console()
 except ImportError:
@@ -81,7 +84,7 @@ def err(msg: str):    print(clr(f"Error: {msg}", "red"), file=sys.stderr)
 def render_diff(text: str):
     """Print diff text with ANSI colors: red for removals, green for additions."""
     for line in text.splitlines():
-        if line.startswith("+++") or line.startswith("---"):
+        if line.startswith(("+++", "---")):
             print(C["bold"] + line + C["reset"])
         elif line.startswith("+"):
             print(C["green"] + line + C["reset"])
@@ -185,6 +188,11 @@ def cmd_help(_args: str, _state, _config) -> bool:
 
 def cmd_clear(_args: str, state, _config) -> bool:
     state.messages.clear()
+    state.turn_traces.clear()
+    state.semantic_state.clear()
+    state.retrieval_state.clear()
+    state.citations.clear()
+    state.research_memory = {}
     state.turn_count = 0
     ok("Conversation cleared.")
     return True
@@ -214,31 +222,39 @@ def cmd_model(args: str, _state, config) -> bool:
         save_config(config)
     return True
 
+def _display_config_value(key: str, value):
+    if key == "api_key" or key.endswith("_api_key"):
+        return "<redacted>"
+    return value
+
+
 def cmd_config(args: str, _state, config) -> bool:
     from config import save_config
     if not args:
-        display = {k: v for k, v in config.items() if k != "api_key"}
+        display = {k: _display_config_value(k, v) for k, v in config.items()}
         print(json.dumps(display, indent=2))
     elif "=" in args:
-        key, _, val = args.partition("=")
-        key, val = key.strip(), val.strip()
+        key, _, raw_value = args.partition("=")
+        key = key.strip()
+        value: Any = raw_value.strip()
         # Type coercion
-        if val.lower() in ("true", "false"):
-            val = val.lower() == "true"
-        elif val.isdigit():
-            val = int(val)
-        config[key] = val
+        if value.lower() in ("true", "false"):
+            value = value.lower() == "true"
+        elif value.isdigit():
+            value = int(value)
+        config[key] = value
         save_config(config)
-        ok(f"Set {key} = {val}")
+        ok(f"Set {key} = {_display_config_value(key, value)}")
     else:
         k = args.strip()
         v = config.get(k, "(not set)")
-        info(f"{k} = {v}")
+        info(f"{k} = {_display_config_value(k, v)}")
     return True
 
 def cmd_save(args: str, state, _config) -> bool:
     from config import SESSIONS_DIR
-    fname = args.strip() or f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    fname = args.strip() or f"session_{timestamp}.json"
     path = Path(fname) if "/" in fname else SESSIONS_DIR / fname
     data = {
         "messages": [
@@ -252,6 +268,11 @@ def cmd_save(args: str, state, _config) -> bool:
         "turn_count": state.turn_count,
         "total_input_tokens": state.total_input_tokens,
         "total_output_tokens": state.total_output_tokens,
+        "semantic_state": state.semantic_state,
+        "retrieval_state": state.retrieval_state,
+        "citations": state.citations,
+        "research_memory": state.research_memory,
+        "memory_mode": state.memory_mode,
     }
     path.write_text(json.dumps(data, indent=2, default=str))
     ok(f"Session saved to {path}")
@@ -279,6 +300,12 @@ def cmd_load(args: str, state, _config) -> bool:
     state.turn_count = data.get("turn_count", 0)
     state.total_input_tokens = data.get("total_input_tokens", 0)
     state.total_output_tokens = data.get("total_output_tokens", 0)
+    state.semantic_state = dict(data.get("semantic_state", {}) or {})
+    state.retrieval_state = dict(data.get("retrieval_state", {}) or {})
+    state.citations = list(data.get("citations", []) or [])
+    state.research_memory = dict(data.get("research_memory", {}) or {})
+    memory_mode = data.get("memory_mode", "compressed")
+    state.memory_mode = memory_mode if memory_mode in {"off", "on", "compressed"} else "compressed"
     ok(f"Session loaded from {path} ({len(state.messages)} messages)")
     return True
 
@@ -310,7 +337,6 @@ def cmd_history(_args: str, state, _config) -> bool:
     return True
 
 def cmd_context(_args: str, state, config) -> bool:
-    import anthropic
     # Rough token estimate: 4 chars ≈ 1 token
     msg_chars = sum(
         len(str(m.get("content", ""))) for m in state.messages
@@ -368,7 +394,7 @@ def cmd_cwd(args: str, _state, _config) -> bool:
         try:
             os.chdir(p)
             ok(f"Changed directory to: {os.getcwd()}")
-        except Exception as e:
+        except OSError as e:
             err(str(e))
     return True
 
@@ -385,6 +411,9 @@ COMMANDS = {
     "load":        cmd_load,
     "history":     cmd_history,
     "context":     cmd_context,
+    "trace":       cmd_trace,
+    "corpus":      cmd_corpus,
+    "memory":      cmd_memory,
     "cost":        cmd_cost,
     "verbose":     cmd_verbose,
     "thinking":    cmd_thinking,
@@ -433,14 +462,38 @@ def setup_readline(history_file: Path):
 
 # ── Main REPL ──────────────────────────────────────────────────────────────
 
-def repl(config: dict, initial_prompt: str = None):
+def repl(
+    config: dict,
+    initial_prompt: str | None = None,
+    *,
+    research_client_override=None,
+    research_searcher=None,
+):
+    from agent import (
+        AgentState,
+        PermissionRequest,
+        TextChunk,
+        ThinkingChunk,
+        ToolEnd,
+        ToolStart,
+        TurnDone,
+        run,
+    )
     from config import HISTORY_FILE
     from context import build_system_prompt
-    from agent import AgentState, run, TextChunk, ThinkingChunk, ToolStart, ToolEnd, TurnDone, PermissionRequest
 
     setup_readline(HISTORY_FILE)
     state = AgentState()
     verbose = config.get("verbose", False)
+    research_mode = config.get("research_mode", True)
+    research_pipeline: Any = None
+    if research_mode:
+        from pipeline.client import NativeProviderClient
+        from pipeline.orchestrator import ResearchPipeline
+
+        research_client = research_client_override or NativeProviderClient(config)
+        research_pipeline = ResearchPipeline(
+            config, client=research_client, searcher=research_searcher)
 
     # Banner
     if not initial_prompt:
@@ -450,7 +503,8 @@ def repl(config: dict, initial_prompt: str = None):
         model_clr = clr(model, "cyan", "bold")
         prov_clr  = clr(f"({pname})", "dim")
         pmode     = clr(config.get("permission_mode", "auto"), "yellow")
-        print(clr("╭─ Nano Claude Code ──────────────────────────────╮", "dim"))
+        product_name = "Nano Research Agent" if research_mode else "Nano Claude Code"
+        print(clr(f"╭─ {product_name} ──────────────────────────────╮", "dim"))
         print(clr("│  Model: ", "dim") + model_clr + " " + prov_clr)
         print(clr("│  Permissions: ", "dim") + pmode)
         print(clr("│  /model to switch provider · /help for commands │", "dim"))
@@ -461,6 +515,15 @@ def repl(config: dict, initial_prompt: str = None):
         nonlocal verbose
         verbose = config.get("verbose", False)
 
+        if research_pipeline is not None:
+            result = research_pipeline.run(user_input, state)
+            print(clr("\n╭─ Research Agent ● ─────────────────────────", "dim"))
+            print(result.answer)
+            if verbose:
+                print(clr(f"  [trace: {result.trace.turn_id}; action: {result.action}]", "dim"))
+            print(clr("╰──────────────────────────────────────────────", "dim"))
+            print()
+            return
         # Rebuild system prompt each turn (picks up cwd changes, etc.)
         system_prompt = build_system_prompt()
 
@@ -492,12 +555,11 @@ def repl(config: dict, initial_prompt: str = None):
                 # Print prefix for next text
                 print(clr("│ ", "dim"), end="", flush=True)
 
-            elif isinstance(event, TurnDone):
-                if verbose:
-                    print(clr(
-                        f"\n  [tokens: +{event.input_tokens} in / "
-                        f"+{event.output_tokens} out]", "dim"
-                    ))
+            elif isinstance(event, TurnDone) and verbose:
+                print(clr(
+                    f"\n  [tokens: +{event.input_tokens} in / "
+                    f"+{event.output_tokens} out]", "dim"
+                ))
 
         flush_response()
         print(clr("╰──────────────────────────────────────────────", "dim"))
@@ -509,7 +571,7 @@ def repl(config: dict, initial_prompt: str = None):
             run_query(initial_prompt)
         except KeyboardInterrupt:
             print()
-        return
+        return state
 
     while True:
         try:
@@ -538,7 +600,7 @@ def repl(config: dict, initial_prompt: str = None):
 def main():
     parser = argparse.ArgumentParser(
         prog="nano_claude",
-        description="Nano Claude Code — minimal Python Claude Code implementation",
+        description="Nano Research Agent — evidence-grounded multi-turn paper QA",
         add_help=False,
     )
     parser.add_argument("prompt", nargs="*", help="Initial prompt (non-interactive)")
@@ -552,6 +614,8 @@ def main():
                         help="Show thinking + token counts")
     parser.add_argument("--thinking", action="store_true",
                         help="Enable extended thinking")
+    parser.add_argument("--coding", action="store_true",
+                        help="Use the inherited coding-agent loop")
     parser.add_argument("--version", action="store_true", help="Print version")
     parser.add_argument("-h", "--help", action="store_true", help="Show help")
 
@@ -565,12 +629,13 @@ def main():
         print(__doc__)
         sys.exit(0)
 
-    from config import load_config, save_config, has_api_key
-    from providers import detect_provider, PROVIDERS
+    from config import has_api_key, load_config
+    from providers import PROVIDERS, detect_provider
 
     config = load_config()
 
     # Apply CLI overrides first (so key check uses the right provider)
+    config["research_mode"] = not args.coding
     if args.model:
         config["model"] = args.model.replace(":", "/", 1)
     if args.accept_all:

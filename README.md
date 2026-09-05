@@ -84,14 +84,14 @@ A minimal Python implementation of Claude Code in ~900 lines (Initial version), 
 | Feature | Details |
 |---|---|
 | Multi-provider | Anthropic · OpenAI · Gemini · Kimi · Qwen · Zhipu · DeepSeek · Ollama · LM Studio · Custom endpoint |
-| Interactive REPL | readline history, Tab-complete slash commands |
+| Research REPL | Seven-stage paper QA, readline history, Tab-complete slash commands |
 | Agent loop | Streaming API + automatic tool-use loop |
 | 8 built-in tools | Read · Write · Edit · Bash · Glob · Grep · WebFetch · WebSearch |
 | Permission system | `auto` / `accept-all` / `manual` modes |
-| 14 slash commands | `/model` · `/config` · `/save` · `/cost` · … |
+| 18 slash commands | `/trace` · `/corpus` · `/memory` · `/model` · `/save` · … |
 | Context injection | Auto-loads `CLAUDE.md`, git status, cwd |
 | Session persistence | Save / load conversations to `~/.nano_claude/sessions/` |
-| Extended Thinking | Toggle on/off (Claude models only) |
+| Extended Thinking | Toggle on/off (Claude and DeepSeek V4 models) |
 | Cost tracking | Token usage + estimated USD cost |
 | Non-interactive mode | `--print` flag for scripting / CI |
 
@@ -106,10 +106,10 @@ A minimal Python implementation of Claude Code in ~900 lines (Initial version), 
 | **Anthropic** | `claude-opus-4-6` | 200k | Most capable, best for complex reasoning | `ANTHROPIC_API_KEY` |
 | **Anthropic** | `claude-sonnet-4-6` | 200k | Balanced speed & quality | `ANTHROPIC_API_KEY` |
 | **Anthropic** | `claude-haiku-4-5-20251001` | 200k | Fast, cost-efficient | `ANTHROPIC_API_KEY` |
-| **OpenAI** | `gpt-4o` | 128k | Strong multimodal & coding | `OPENAI_API_KEY` |
-| **OpenAI** | `gpt-4o-mini` | 128k | Fast, cheap | `OPENAI_API_KEY` |
-| **OpenAI** | `o3-mini` | 200k | Strong reasoning | `OPENAI_API_KEY` |
-| **OpenAI** | `o1` | 200k | Advanced reasoning | `OPENAI_API_KEY` |
+| **OpenAI** | `gpt-5.6-sol` | 128k | Highest-quality GPT-5.6 option | `OPENAI_API_KEY` |
+| **OpenAI** | `gpt-5.6-terra` | 128k | Balanced GPT-5.6 option | `OPENAI_API_KEY` |
+| **OpenAI** | `gpt-5.6-luna` | 128k | Fast, cost-efficient GPT-5.6 option | `OPENAI_API_KEY` |
+| **OpenAI** | `gpt-4.1`, `gpt-4.1-mini` | 128k | Compatible general models | `OPENAI_API_KEY` |
 | **Google** | `gemini-2.5-pro-preview-03-25` | 1M | Long context, multimodal | `GEMINI_API_KEY` |
 | **Google** | `gemini-2.0-flash` | 1M | Fast, large context | `GEMINI_API_KEY` |
 | **Google** | `gemini-1.5-pro` | 2M | Largest context window | `GEMINI_API_KEY` |
@@ -123,8 +123,9 @@ A minimal Python implementation of Claude Code in ~900 lines (Initial version), 
 | **Zhipu (GLM)** | `glm-4-plus` | 128k | Best GLM quality | `ZHIPU_API_KEY` |
 | **Zhipu (GLM)** | `glm-4` | 128k | General purpose | `ZHIPU_API_KEY` |
 | **Zhipu (GLM)** | `glm-4-flash` | 128k | Free tier available | `ZHIPU_API_KEY` |
-| **DeepSeek** | `deepseek-chat` | 64k | Strong coding | `DEEPSEEK_API_KEY` |
-| **DeepSeek** | `deepseek-reasoner` | 64k | Chain-of-thought reasoning | `DEEPSEEK_API_KEY` |
+| **DeepSeek** | `deepseek-v4-flash` | 64k | Fast text model | `DEEPSEEK_API_KEY` |
+| **DeepSeek** | `deepseek-v4-pro` | 64k | Higher-quality text model | `DEEPSEEK_API_KEY` |
+| **DeepSeek** | `deepseek-v4-flash-vision-exp` | 64k | Experimental vision model | `DEEPSEEK_API_KEY` |
 
 ### Open-Source (Local via Ollama)
 
@@ -186,9 +187,9 @@ Get your API key at [platform.openai.com](https://platform.openai.com).
 ```bash
 export OPENAI_API_KEY=sk-...
 
-python nano_claude.py --model gpt-4o
-python nano_claude.py --model gpt-4o-mini
-python nano_claude.py --model o3-mini
+python nano_claude.py --model gpt-5.6-sol
+python nano_claude.py --model gpt-5.6-terra
+python nano_claude.py --model gpt-5.6-luna
 ```
 
 ### Google Gemini
@@ -244,8 +245,8 @@ Get your API key at [platform.deepseek.com](https://platform.deepseek.com).
 ```bash
 export DEEPSEEK_API_KEY=sk-...
 
-python nano_claude.py --model deepseek/deepseek-chat
-python nano_claude.py --model deepseek/deepseek-reasoner
+python nano_claude.py --model deepseek/deepseek-v4-flash
+python nano_claude.py --model deepseek/deepseek-v4-pro
 ```
 
 ---
@@ -402,9 +403,9 @@ Three equivalent formats are supported:
 
 ```bash
 # 1. Auto-detect by prefix (works for well-known models)
-python nano_claude.py --model gpt-4o
+python nano_claude.py --model gpt-5.6-luna
 python nano_claude.py --model gemini-2.0-flash
-python nano_claude.py --model deepseek-chat
+python nano_claude.py --model deepseek-v4-flash
 
 # 2. Explicit provider prefix with slash
 python nano_claude.py --model ollama/qwen2.5-coder
@@ -437,10 +438,11 @@ python nano_claude.py [OPTIONS] [PROMPT]
 
 Options:
   -p, --print          Non-interactive: run prompt and exit
-  -m, --model MODEL    Override model (e.g. gpt-4o, ollama/llama3.3)
+  -m, --model MODEL    Override model (e.g. gpt-5.6-luna, deepseek-v4-flash)
   --accept-all         Auto-approve all operations (no permission prompts)
   --verbose            Show thinking blocks and per-turn token counts
-  --thinking           Enable Extended Thinking (Claude only)
+  --thinking           Enable Extended Thinking where supported
+  --coding             Use the inherited coding-agent loop
   --version            Print version and exit
   -h, --help           Show help
 ```
@@ -448,19 +450,19 @@ Options:
 **Examples:**
 
 ```bash
-# Interactive REPL with default model
+# Interactive research-paper REPL with the default model
 python nano_claude.py
 
 # Switch model at startup
-python nano_claude.py --model gpt-4o
-python nano_claude.py -m ollama/deepseek-r1:32b
+python nano_claude.py --model gpt-5.6-luna
+python nano_claude.py -m deepseek-v4-flash
 
 # Non-interactive / scripting
-python nano_claude.py --print "Write a Python fibonacci function"
-python nano_claude.py -p "Explain the Rust borrow checker in 3 sentences" -m gemini/gemini-2.0-flash
+python nano_claude.py --print "比较语料中两种方法的实验结论"
+python nano_claude.py -p "这篇论文的主要局限是什么？" -m deepseek-v4-flash
 
-# CI / automation (no permission prompts)
-python nano_claude.py --accept-all --print "Initialize a Python project with pyproject.toml"
+# Retain the inherited coding-agent interface for offline development
+python nano_claude.py --coding --print "Explain this repository structure"
 
 # Debug mode (see tokens + thinking)
 python nano_claude.py --thinking --verbose
@@ -486,9 +488,12 @@ Type `/` and press **Tab** to autocomplete.
 | `/load <filename>` | Load a saved session |
 | `/history` | Print full conversation history |
 | `/context` | Show message count and token estimate |
+| `/trace [turn_id]` | Show the latest or selected seven-stage turn trace |
+| `/corpus` | Show paper/chunk counts, index health, and retrieval models |
+| `/memory [off\|on\|compressed]` | Show structured memory or change its mode |
 | `/cost` | Show token usage and estimated USD cost |
 | `/verbose` | Toggle verbose mode (tokens + thinking) |
-| `/thinking` | Toggle Extended Thinking (Claude only) |
+| `/thinking` | Toggle Extended Thinking where supported |
 | `/permissions` | Show current permission mode |
 | `/permissions <mode>` | Set permission mode: `auto` / `accept-all` / `manual` |
 | `/cwd` | Show current working directory |
@@ -503,12 +508,12 @@ Type `/` and press **Tab** to autocomplete.
 
   Available models by provider:
     anthropic     claude-opus-4-6, claude-sonnet-4-6, ...
-    openai        gpt-4o, gpt-4o-mini, o3-mini, ...
+    openai        gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna, ...
     ollama        llama3.3, llama3.2, phi4, mistral, ...
     ...
 
-[myproject] ❯ /model gpt-4o
-  Model set to gpt-4o  (provider: openai)
+[myproject] ❯ /model gpt-5.6-luna
+  Model set to gpt-5.6-luna  (provider: openai)
 
 [myproject] ❯ /model ollama/qwen2.5-coder
   Model set to ollama/qwen2.5-coder  (provider: ollama)
