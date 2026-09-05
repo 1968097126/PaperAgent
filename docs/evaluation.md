@@ -110,8 +110,38 @@ Each run writes `per_sample.jsonl`, `summary.json`, `summary.csv`, `summary.md`,
 `run_config.json`. The run configuration records model/provider, seed, Python/platform,
 portable retrieval settings, full index manifest, dataset statistics, and provenance.
 
+## Human annotation review
+
+Export a protected review package after the strict dataset validator passes:
+
+```bash
+conda run -n nanocc python -m eval.review_annotations export \
+  --data-dir eval/data --chunks corpus/chunks.jsonl \
+  --review-dir eval/review/work
+```
+
+The package contains 375 independent rows requiring review (M/I/R/B), 70 E-to-M links,
+and a deduplicated full-text evidence catalog. Machine-owned fields and source hashes
+are validated on every progress check. E is reviewed through its source M row because
+the dataset validator separately enforces exact E⊂M equality.
+
+```bash
+conda run -n nanocc python -m eval.review_annotations check \
+  --data-dir eval/data --chunks corpus/chunks.jsonl \
+  --review-dir eval/review/work
+```
+
+The completion gate adds `--require-complete` and succeeds only after all 375 rows are
+approved. It cannot modify JSONL labels or provenance. Human approval changes review
+status, not synthetic origin. See
+[`eval/review/README.md`](../eval/review/README.md) for column rules, decision semantics,
+dataset-specific criteria, correction handling, and the explicit human attestation.
+
 ## Current limitation
 
 Phase 6 validates the system and annotations but does not publish formal percentages.
-The synthetic annotations require human review before they can be described as
-human-labelled, and the full Provider-backed experiments belong to Phase 7.
+The Phase 7 review package has been generated, but all 375 rows remain pending. The
+annotations must currently be described as unreviewed synthetic annotations. After a
+successful review they may be described as human-reviewed synthetic annotations, not
+as annotations authored from scratch by humans. Full Provider-backed experiments also
+remain a later Phase 7 step.

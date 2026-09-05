@@ -10,7 +10,7 @@
 | 4 七阶段编排 | 已完成 | `pipeline/stages.py`、`pipeline/memory.py`、`pipeline/orchestrator.py`、`pipeline/client.py`、`providers.py` | mock/异常/真实索引测试已通过；DeepSeek V4 Flash 真实七阶段回答与 OpenAI GPT-5.6 Luna completion 已验证 |
 | 5 CLI | 已完成 | `nano_claude.py`、`research_cli.py` | `tests/test_research_cli.py`；mock Provider 完整跑通一轮七阶段，真实语料 `/corpus` smoke test 已验证 |
 | 6 评测系统 | 已完成 | `eval/datasets.py`、`eval/metrics.py`、`eval/run_evaluation.py`、`eval/validate_datasets.py`、`eval/data/*.jsonl` | `tests/test_eval.py`；真实语料绑定的 M/I/R/B/E 严格校验通过，正式 Provider 指标留待 Phase 7 |
-| 7 打磨与真实结果 | 进行中：收尾阶段 1 已完成 | `docs/final_audit.md`、`tests/test_pipeline.py`；冻结 Phase 1–6 的运行时接口，不提前写入正式评测结果 | 全量回归、Phase 1–6 目标模块静态检查、数据集校验与离线 smoke test 均通过；人工复核和正式 Provider 评测留待后续收尾阶段 |
+| 7 打磨与真实结果 | 进行中：阶段 1 已完成，阶段 2 等待人工复核 | `docs/final_audit.md`、`eval/review_annotations.py`、`eval/review/README.md`；冻结 Phase 1–6 接口并生成受保护的复核包 | 复核工具测试、实际导出和初始进度检查通过；375 行均为 pending，正式 Provider 评测留待后续阶段 |
 
 ## 当前可复现命令
 
@@ -30,6 +30,8 @@ conda run -n nanocc python nano_claude.py --help
 conda run -n nanocc python -m pytest -q tests/test_eval.py
 conda run -n nanocc python -m eval.validate_datasets --data-dir eval/data --chunks corpus/chunks.jsonl
 conda run -n nanocc python -m eval.run_evaluation --suite datasets --build-datasets --seed 42
+conda run -n nanocc python -m eval.review_annotations export --data-dir eval/data --chunks corpus/chunks.jsonl --review-dir eval/review/work
+conda run -n nanocc python -m eval.review_annotations check --data-dir eval/data --chunks corpus/chunks.jsonl --review-dir eval/review/work
 ```
 
 ## Phase 1–2 已验证事实
@@ -122,3 +124,11 @@ conda run -n nanocc python -m eval.run_evaluation --suite datasets --build-datas
 - 原未跟踪的 `tests/test_pipeline.py` 已整理为最终七阶段回归 smoke suite，覆盖结构化修复、安全 fallback、阶段顺序、二次检索硬上限、引用校验和 Memory 三态。
 - Phase 1–6 的公共入口、七阶段顺序、Provider 适配、状态更新、数据集校验与 CLI 路径均纳入最终审计矩阵；结论与剩余门槛见 `docs/final_audit.md`。
 - 本阶段不调用付费 Provider、不修改评测标注来源，也不发布正式百分比；人工复核、正式评测和发布文档仍按后续阶段独立提交。
+
+## Phase 7 收尾阶段 2 当前状态
+
+- 新增人工复核包导出与校验工具；导出前强制执行原数据集严格校验，并用 SHA-256 绑定 M/I/R/B/E 与当前 1,800 个 chunks。
+- 人工范围是 M 120、I 100、R 100、B 55，共 375 条独立记录；E 的 70 条映射通过对应 M 行复核，并继续由数据验证器保证字段完全一致。
+- 实际复核包已生成到被 Git 忽略的 `eval/review/work/`：`annotations.csv` 375 行、`evidence.csv` 154 个去重 chunk 和 `review_manifest.json`。
+- 校验器禁止修改机器列、证据目录和 manifest；校验 decision、问题代码、修正 JSON、审核人及带时区时间，并拒绝覆盖已有人工工作。
+- 当前普通检查通过且 375 行均为 `pending`；`--require-complete` 按预期失败。收到人工完成确认前不得标记 human-reviewed；确认后也只增加独立复核状态，不改变 `synthetic_grounded_in_real_corpus` 来源。

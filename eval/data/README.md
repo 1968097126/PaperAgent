@@ -16,4 +16,7 @@ conda run -n nanocc python -m eval.validate_datasets \
 ```
 
 Do not treat metrics on these synthetic annotations as human-reviewed benchmark
-results. Human review is a separate Phase 7 requirement.
+results. Human review is a separate Phase 7 requirement. Generate the protected review
+package with `python -m eval.review_annotations export` and follow
+[`eval/review/README.md`](../review/README.md); exporting the package does not change
+this provenance declaration.

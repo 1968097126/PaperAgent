@@ -535,6 +535,11 @@ conda run -n nanocc python -m eval.run_evaluation \
 conda run -n nanocc python -m eval.validate_datasets \
   --data-dir eval/data --chunks corpus/chunks.jsonl
 
+# Export the human-review workbook without changing dataset provenance
+conda run -n nanocc python -m eval.review_annotations export \
+  --data-dir eval/data --chunks corpus/chunks.jsonl \
+  --review-dir eval/review/work
+
 # Local dense vs hybrid vs hybrid+rerank evaluation
 conda run -n nanocc python -m eval.run_evaluation \
   --suite retrieval --device cpu --seed 42 \
@@ -543,8 +548,10 @@ conda run -n nanocc python -m eval.run_evaluation \
 
 Provider-backed Intent, Rewrite, Guardrails, Reflect, E2E, citation, Memory, and token
 evaluations use `--suite provider` or `--suite all` and require the selected Provider's
-environment variable. See [`docs/evaluation.md`](docs/evaluation.md) for schemas,
-metric definitions, output files, and current limitations.
+environment variable. See [`docs/evaluation.md`](docs/evaluation.md) for schemas and
+metrics, and [`eval/review/README.md`](eval/review/README.md) for the required manual
+annotation-review procedure. The data keeps its synthetic origin; its separate human-
+review status remains pending until that review is complete and explicitly confirmed.
 
 ---
 

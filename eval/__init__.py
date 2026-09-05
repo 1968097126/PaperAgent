@@ -1,1 +1,1 @@
-"""Corpus-grounded datasets, metrics, validation, and evaluation runners."""
+"""Corpus-grounded datasets, metrics, human review, and evaluation runners."""
