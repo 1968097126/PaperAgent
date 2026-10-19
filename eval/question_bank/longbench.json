@@ -1,0 +1,62 @@
+[
+  {
+    "query": "LongBench 的核心贡献是什么？",
+    "answer": "LongBench 是首个双语、多任务的长上下文理解基准，包含 6 大任务类别共 21 个数据集，覆盖英文和中文，用于更严格地评估长上下文理解能力。",
+    "chunk_id": "longbench:0001:dae072cd1ce8",
+    "support_quote": "we introduce LongBench, the first bilingual, multi-task benchmark for long context understanding, enabling a more rigorous evaluation of long context understanding",
+    "paper_id": "longbench",
+    "title": "LongBench: A Bilingual, Multitask Benchmark for Long Context Understanding",
+    "ground_truth_chunk_ids": [
+      "longbench:0001:dae072cd1ce8"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "LongBench 在评估时如何处理超过模型最大上下文长度的输入？",
+    "answer": "当输入长度超过模型的最大上下文长度时，LongBench 从序列中间截断，保留开头和结尾部分，因为开头和结尾可能包含指令或问题等关键信息。",
+    "chunk_id": "longbench:0031:b32c3d1f8a56",
+    "support_quote": "we truncate the input sequence S from the middle since the front and end of the sequence may contain crucial information such as the instruction or question",
+    "paper_id": "longbench",
+    "title": "LongBench: A Bilingual, Multitask Benchmark for Long Context Understanding",
+    "ground_truth_chunk_ids": [
+      "longbench:0031:b32c3d1f8a56"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "LongBench 如何检验模型是依赖记忆还是真正理解上下文？",
+    "answer": "LongBench 通过去掉长上下文、只给模型问题来测试，比较有上下文和无上下文时的表现差异，以评估任务在多大程度上依赖记忆而非长上下文理解。",
+    "chunk_id": "longbench:0043:0703d4d8ab8b",
+    "support_quote": "We conduct an experiment to assess the degree to which these tasks rely on memorization rather than long context understanding capability",
+    "paper_id": "longbench",
+    "title": "LongBench: A Bilingual, Multitask Benchmark for Long Context Understanding",
+    "ground_truth_chunk_ids": [
+      "longbench:0043:0703d4d8ab8b"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "在 LongBench 上，GPT-3.5-Turbo-16k 在更长上下文上的表现如何？",
+    "answer": "尽管 GPT-3.5-Turbo-16k 整体表现突出，但在 LongBench-E 上从 0-4k 到 8k+ 长度区间仍出现约 17% 的相对下降，说明它在更长上下文上仍有困难。",
+    "chunk_id": "longbench:0036:d73a1bce51d4",
+    "support_quote": "despite GPT- 3.5-Turbo-16k demonstrating impressive overall performance across all tasks, we find that it still struggles on longer contexts (-17% from 0-4k to 8k+)",
+    "paper_id": "longbench",
+    "title": "LongBench: A Bilingual, Multitask Benchmark for Long Context Understanding",
+    "ground_truth_chunk_ids": [
+      "longbench:0036:d73a1bce51d4"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "LongBench 在评估指标方面有哪些局限？",
+    "answer": "LongBench 使用的 ROUGE-L、F1 等自动指标可能无法准确反映回答质量，对习惯生成较长回答的模型可能低估其表现；而用 LLM 作评判又可能带来高运行开销和偏差。",
+    "chunk_id": "longbench:0047:4fb47da62b7d",
+    "support_quote": "the automatic evaluation metrics (ROUGE-L, F1) may not accurately reflect the quality of the response",
+    "paper_id": "longbench",
+    "title": "LongBench: A Bilingual, Multitask Benchmark for Long Context Understanding",
+    "ground_truth_chunk_ids": [
+      "longbench:0047:4fb47da62b7d"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

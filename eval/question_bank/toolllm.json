@@ -1,0 +1,62 @@
+[
+  {
+    "query": "ToolLLM 的核心贡献是什么？",
+    "answer": "ToolLLM 是一个通用的工具使用框架，涵盖数据构建、模型训练和评估，并提出了用 ChatGPT 自动构建的指令微调数据集 ToolBench。",
+    "chunk_id": "toolllm:0001:77cd40274a88",
+    "support_quote": "we introduce ToolLLM, a general tool-use framework encompassing data construction, model training, and evaluation. We first present ToolBench, an instruction-tuning dataset for tool use",
+    "paper_id": "toolllm",
+    "title": "ToolLLM: Facilitating Large Language Models to Master 16000+ Real-world APIs",
+    "ground_truth_chunk_ids": [
+      "toolllm:0001:77cd40274a88"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "ToolLLM 如何解决多工具指令中工具组合稀疏的问题？",
+    "answer": "ToolLLM 利用 RapidAPI 的层级信息，从同一类别或集合中随机选择 2-5 个工具，并从每个工具中最多采样 3 个 API 来生成指令。",
+    "chunk_id": "toolllm:0024:fd82c679501e",
+    "support_quote": "we randomly select 2-5 tools from the same category / collection and sample at most 3 APIs from each tool to generate the instructions",
+    "paper_id": "toolllm",
+    "title": "ToolLLM: Facilitating Large Language Models to Master 16000+ Real-world APIs",
+    "ground_truth_chunk_ids": [
+      "toolllm:0024:fd82c679501e"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "ToolLLM 的 API 检索器是如何训练的？",
+    "answer": "API 检索器基于 BERTBASE 用 Sentence-BERT 训练为稠密检索器，将指令和 API 文档编码为两个嵌入并计算相似度；训练时把指令的相关 API 作为正例，并采样其他 API 作为负例进行对比学习。",
+    "chunk_id": "toolllm:0032:127976ceb400",
+    "support_quote": "The API retriever encodes the instruction and API document into two embeddings, and calculates their relevance with embedding similarity",
+    "paper_id": "toolllm",
+    "title": "ToolLLM: Facilitating Large Language Models to Master 16000+ Real-world APIs",
+    "ground_truth_chunk_ids": [
+      "toolllm:0032:127976ceb400"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "ToolLLM 在 ToolBench 主实验中的主要结果是什么？",
+    "answer": "Vicuna 和 Alpaca 无法通过任何指令；对所有 LLM 而言，使用 DFSDT 在通过率和胜率上都显著优于 ReACT，ChatGPT+DFSDT 甚至超过 GPT-4+ReACT。",
+    "chunk_id": "toolllm:0040:d01155f7dfa8",
+    "support_quote": "Both Vicuna and Alpaca fail to pass any instruction (pass rate & win rate = 0), which means their instruction-following abilities do not cover the tool-use domain",
+    "paper_id": "toolllm",
+    "title": "ToolLLM: Facilitating Large Language Models to Master 16000+ Real-world APIs",
+    "ground_truth_chunk_ids": [
+      "toolllm:0040:d01155f7dfa8"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "ToolLLM 在分布外泛化实验中的结果如何？",
+    "answer": "ToolLLaMA 在三个数据集上都取得了显著的分布外泛化表现；具体而言，ToolLLaMA+其 API 检索器在 HuggingFace 和 TorchHub 上的 AST 准确率均优于两种训练设置下的 Gorilla+BM25。",
+    "chunk_id": "toolllm:0045:ee4c23c0c207",
+    "support_quote": "ToolLLaMA+our API retriever outperforms Gorilla+BM25 from both training settings (ZS / RS) in terms of AST accuracy on HuggingFace and TorchHub",
+    "paper_id": "toolllm",
+    "title": "ToolLLM: Facilitating Large Language Models to Master 16000+ Real-world APIs",
+    "ground_truth_chunk_ids": [
+      "toolllm:0045:ee4c23c0c207"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

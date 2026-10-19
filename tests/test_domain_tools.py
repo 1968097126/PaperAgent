@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-import retrieval.hybrid_v2 as hybrid
+import retrieval.hybrid_search as hybrid
 import tools  # noqa: F401 - importing registers built-in and domain ToolDefs
 from tool_registry import execute_tool, get_tool_schemas
 

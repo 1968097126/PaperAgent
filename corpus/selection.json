@@ -1,0 +1,233 @@
+{
+  "corpus_id": "agent-llm-20-20261019",
+  "selection_window": [
+    "2023-10-19",
+    "2026-10-19"
+  ],
+  "date_basis": "Formal publication, not first arXiv submission. Month precision where day is unavailable.",
+  "scope": "User approved top journals and top conferences; main proceedings and explicitly identified benchmark tracks.",
+  "papers": [
+    {
+      "paper_id": "agentbench",
+      "title": "AgentBench: Evaluating LLMs as Agents",
+      "venue": "ICLR 2024",
+      "publication_type": "conference",
+      "published": "2024-05",
+      "publication_date_precision": "month",
+      "source_url": "https://proceedings.iclr.cc/paper_files/paper/2024/hash/e9df36b21ff4ee211a8b71ee8b7e9f57-Abstract-Conference.html",
+      "pdf_url": "https://proceedings.iclr.cc/paper_files/paper/2024/file/e9df36b21ff4ee211a8b71ee8b7e9f57-Paper-Conference.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "webarena",
+      "title": "WebArena: A Realistic Web Environment for Building Autonomous Agents",
+      "venue": "ICLR 2024",
+      "publication_type": "conference",
+      "published": "2024-05",
+      "publication_date_precision": "month",
+      "source_url": "https://proceedings.iclr.cc/paper_files/paper/2024/hash/4410c0711e9154a7a2d26f9b3816d1ef-Abstract-Conference.html",
+      "pdf_url": "https://proceedings.iclr.cc/paper_files/paper/2024/file/4410c0711e9154a7a2d26f9b3816d1ef-Paper-Conference.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "swebench",
+      "title": "SWE-bench: Can Language Models Resolve Real-world Github Issues?",
+      "venue": "ICLR 2024",
+      "publication_type": "conference",
+      "published": "2024-05",
+      "publication_date_precision": "month",
+      "source_url": "https://proceedings.iclr.cc/paper_files/paper/2024/hash/edac78c3e300629acfe6cbe9ca88fb84-Abstract-Conference.html",
+      "pdf_url": "https://proceedings.iclr.cc/paper_files/paper/2024/file/edac78c3e300629acfe6cbe9ca88fb84-Paper-Conference.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "toolllm",
+      "title": "ToolLLM: Facilitating Large Language Models to Master 16000+ Real-world APIs",
+      "venue": "ICLR 2024",
+      "publication_type": "conference",
+      "published": "2024-05",
+      "publication_date_precision": "month",
+      "source_url": "https://proceedings.iclr.cc/paper_files/paper/2024/hash/28e50ee5b72e90b50e7196fde8ea260e-Abstract-Conference.html",
+      "pdf_url": "https://proceedings.iclr.cc/paper_files/paper/2024/file/28e50ee5b72e90b50e7196fde8ea260e-Paper-Conference.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "selfrag",
+      "title": "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection",
+      "venue": "ICLR 2024",
+      "publication_type": "conference",
+      "published": "2024-05",
+      "publication_date_precision": "month",
+      "source_url": "https://proceedings.iclr.cc/paper_files/paper/2024/hash/25f7be9694d7b32d5cc670927b8091e1-Abstract-Conference.html",
+      "pdf_url": "https://proceedings.iclr.cc/paper_files/paper/2024/file/25f7be9694d7b32d5cc670927b8091e1-Paper-Conference.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "lats",
+      "title": "Language Agent Tree Search Unifies Reasoning, Acting, and Planning in Language Models",
+      "venue": "ICML 2024",
+      "publication_type": "conference",
+      "published": "2024-07",
+      "publication_date_precision": "month",
+      "source_url": "https://proceedings.mlr.press/v235/zhou24r.html",
+      "pdf_url": "https://raw.githubusercontent.com/mlresearch/v235/main/assets/zhou24r/zhou24r.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "anytool",
+      "title": "AnyTool: Self-Reflective, Hierarchical Agents for Large-Scale API Calls",
+      "venue": "ICML 2024",
+      "publication_type": "conference",
+      "published": "2024-07",
+      "publication_date_precision": "month",
+      "source_url": "https://proceedings.mlr.press/v235/du24h.html",
+      "pdf_url": "https://raw.githubusercontent.com/mlresearch/v235/main/assets/du24h/du24h.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "workarena",
+      "title": "WorkArena: How Capable Are Web Agents at Solving Common Knowledge Work Tasks?",
+      "venue": "ICML 2024",
+      "publication_type": "conference",
+      "published": "2024-07",
+      "publication_date_precision": "month",
+      "source_url": "https://proceedings.mlr.press/v235/drouin24a.html",
+      "pdf_url": "https://raw.githubusercontent.com/mlresearch/v235/main/assets/drouin24a/drouin24a.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "dsagent",
+      "title": "DS-Agent: Automated Data Science by Empowering Large Language Models with Case-Based Reasoning",
+      "venue": "ICML 2024",
+      "publication_type": "conference",
+      "published": "2024-07",
+      "publication_date_precision": "month",
+      "source_url": "https://proceedings.mlr.press/v235/guo24b.html",
+      "pdf_url": "https://raw.githubusercontent.com/mlresearch/v235/main/assets/guo24b/guo24b.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "sweagent",
+      "title": "SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering",
+      "venue": "NeurIPS 2024",
+      "publication_type": "conference",
+      "published": "2024-12",
+      "publication_date_precision": "month",
+      "source_url": "https://proceedings.neurips.cc/paper_files/paper/2024/hash/5a7c947568c1b1328ccc5230172e1e7c-Abstract-Conference.html",
+      "pdf_url": "https://proceedings.neurips.cc/paper_files/paper/2024/file/5a7c947568c1b1328ccc5230172e1e7c-Paper-Conference.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "osworld",
+      "title": "OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments",
+      "venue": "NeurIPS 2024",
+      "publication_type": "conference",
+      "published": "2024-12",
+      "publication_date_precision": "month",
+      "source_url": "https://proceedings.neurips.cc/paper_files/paper/2024/hash/5d413e48f84dc61244b6be550f1cd8f5-Abstract-Datasets_and_Benchmarks_Track.html",
+      "pdf_url": "https://proceedings.neurips.cc/paper_files/paper/2024/file/5d413e48f84dc61244b6be550f1cd8f5-Paper-Datasets_and_Benchmarks_Track.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "agentboard",
+      "title": "AgentBoard: An Analytical Evaluation Board of Multi-turn LLM Agents",
+      "venue": "NeurIPS 2024",
+      "publication_type": "conference",
+      "published": "2024-12",
+      "publication_date_precision": "month",
+      "source_url": "https://proceedings.neurips.cc/paper_files/paper/2024/hash/877b40688e330a0e2a3fc24084208dfa-Abstract-Datasets_and_Benchmarks_Track.html",
+      "pdf_url": "https://proceedings.neurips.cc/paper_files/paper/2024/file/877b40688e330a0e2a3fc24084208dfa-Paper-Datasets_and_Benchmarks_Track.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "reflexion",
+      "title": "Reflexion: language agents with verbal reinforcement learning",
+      "venue": "NeurIPS 2023",
+      "publication_type": "conference",
+      "published": "2023-12",
+      "publication_date_precision": "month",
+      "source_url": "https://proceedings.neurips.cc/paper_files/paper/2023/hash/1b44b878bb782e6954cd888628510e90-Abstract-Conference.html",
+      "pdf_url": "https://proceedings.neurips.cc/paper_files/paper/2023/file/1b44b878bb782e6954cd888628510e90-Paper-Conference.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "selfrefine",
+      "title": "Self-Refine: Iterative Refinement with Self-Feedback",
+      "venue": "NeurIPS 2023",
+      "publication_type": "conference",
+      "published": "2023-12",
+      "publication_date_precision": "month",
+      "source_url": "https://proceedings.neurips.cc/paper_files/paper/2023/hash/91edff07232fb1b55a505a9e9f6c0ff3-Abstract-Conference.html",
+      "pdf_url": "https://proceedings.neurips.cc/paper_files/paper/2023/file/91edff07232fb1b55a505a9e9f6c0ff3-Paper-Conference.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "toolformer",
+      "title": "Toolformer: Language Models Can Teach Themselves to Use Tools",
+      "venue": "NeurIPS 2023",
+      "publication_type": "conference",
+      "published": "2023-12",
+      "publication_date_precision": "month",
+      "source_url": "https://proceedings.neurips.cc/paper_files/paper/2023/hash/d842425e4bf79ba039352da0f658a906-Abstract-Conference.html",
+      "pdf_url": "https://proceedings.neurips.cc/paper_files/paper/2023/file/d842425e4bf79ba039352da0f658a906-Paper-Conference.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "rap",
+      "title": "Reasoning with Language Model is Planning with World Model",
+      "venue": "EMNLP 2023",
+      "publication_type": "conference",
+      "published": "2023-12",
+      "publication_date_precision": "month",
+      "source_url": "https://aclanthology.org/2023.emnlp-main.507/",
+      "pdf_url": "https://aclanthology.org/2023.emnlp-main.507.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "longbench",
+      "title": "LongBench: A Bilingual, Multitask Benchmark for Long Context Understanding",
+      "venue": "ACL 2024",
+      "publication_type": "conference",
+      "published": "2024-08",
+      "publication_date_precision": "month",
+      "source_url": "https://aclanthology.org/2024.acl-long.172/",
+      "pdf_url": "https://aclanthology.org/2024.acl-long.172.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "longmemeval",
+      "title": "LongMemEval: Benchmarking Chat Assistants on Long-Term Interactive Memory",
+      "venue": "ICLR 2025",
+      "publication_type": "conference",
+      "published": "2025-04",
+      "publication_date_precision": "month",
+      "source_url": "https://proceedings.iclr.cc/paper_files/paper/2025/hash/d813d324dbf0598bbdc9c8e79740ed01-Abstract-Conference.html",
+      "pdf_url": "https://proceedings.iclr.cc/paper_files/paper/2025/file/d813d324dbf0598bbdc9c8e79740ed01-Paper-Conference.pdf",
+      "text_version": "publisher proceedings"
+    },
+    {
+      "paper_id": "memorysurvey",
+      "title": "A Survey on the Memory Mechanism of Large Language Model-based Agents",
+      "venue": "ACM Transactions on Information Systems",
+      "publication_type": "journal",
+      "published": "2025",
+      "publication_date_precision": "year",
+      "doi": "10.1145/3748302",
+      "source_url": "https://dl.acm.org/doi/10.1145/3748302",
+      "pdf_url": "https://arxiv.org/pdf/2404.13501v1",
+      "text_version": "author preprint v1; journal publication verified separately",
+      "preprint_url": "https://arxiv.org/abs/2404.13501v1"
+    },
+    {
+      "paper_id": "promptbench",
+      "title": "PromptBench: A Unified Library for Evaluation of Large Language Models",
+      "venue": "Journal of Machine Learning Research",
+      "publication_type": "journal",
+      "published": "2024-08",
+      "publication_date_precision": "month",
+      "source_url": "https://www.jmlr.org/papers/v25/24-0023.html",
+      "pdf_url": "https://www.jmlr.org/papers/volume25/24-0023/24-0023.pdf",
+      "text_version": "publisher journal version"
+    }
+  ]
+}

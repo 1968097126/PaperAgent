@@ -3,10 +3,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from retrieval.config import RetrievalConfig
+from retrieval.model_versions import MODEL_REVISIONS
 
 
 class IndexVersionError(RuntimeError):
@@ -24,11 +25,12 @@ def corpus_fingerprint(chunks: list[dict]) -> str:
 def build_manifest(chunks: list[dict], config: RetrievalConfig) -> dict:
     return {
         "index_version": config.index_version,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "corpus_fingerprint": corpus_fingerprint(chunks),
         "paper_count": len({chunk["paper_id"] for chunk in chunks}),
         "chunk_count": len(chunks),
         "dense_model": config.dense_model,
+        "model_revisions": MODEL_REVISIONS,
         "reranker_model": config.reranker_model,
         "chunk_strategy": config.chunk_strategy,
         "chunk_size": config.chunk_size,
@@ -75,7 +77,7 @@ def index_status(config: RetrievalConfig) -> dict:
     stale = True
     if all(present.values()) and not error:
         try:
-            from retrieval.chunking_v2 import load_chunks
+            from retrieval.chunking import load_chunks
             stale = corpus_fingerprint(load_chunks(config.chunks_path)) != manifest.get("corpus_fingerprint")
         except (OSError, ValueError, json.JSONDecodeError) as exc:
             error = str(exc)

@@ -57,6 +57,7 @@ def test_current_provider_models_and_environment_key_contract() -> None:
         "gpt-4o-mini",
     ]
     assert PROVIDERS["deepseek"]["models"] == [
+        "deepseek-flash",
         "deepseek-v4-flash",
         "deepseek-v4-pro",
         "deepseek-v4-flash-vision-exp",

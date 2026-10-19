@@ -6,11 +6,11 @@ import json
 from pathlib import Path
 
 from retrieval.config import RetrievalConfig
-from retrieval.dense_v2 import search_dense
-from retrieval.fuse_v2 import reciprocal_rank_fusion
-from retrieval.hybrid_v2 import HybridSearcher
-from retrieval.rerank_v2 import rerank
-from retrieval.sparse_v2 import search_sparse
+from retrieval.dense_index import search_dense
+from retrieval.fuse import reciprocal_rank_fusion
+from retrieval.hybrid_search import HybridSearcher
+from retrieval.rerank import rerank
+from retrieval.sparse_index import search_sparse
 
 DEFAULT_QUERIES = [
     "robust reinforcement learning under dynamics uncertainty",

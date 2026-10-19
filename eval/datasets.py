@@ -1,4 +1,8 @@
-"""Deterministic synthetic evaluation datasets grounded in corpus chunk IDs."""
+"""Dataset schemas, validators, and legacy deterministic smoke-test generators.
+
+For the rebuilt paper corpus use ``python -m eval.build_research_data`` instead
+of the legacy keyword-based generators retained for fixture compatibility.
+"""
 
 from __future__ import annotations
 
@@ -10,7 +14,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from retrieval.chunking_v2 import load_chunks
+from retrieval.chunking import load_chunks
 
 SCHEMA_VERSION = 1
 DATASET_NAMES = ("M", "I", "R", "B", "E")
@@ -467,6 +471,7 @@ def build_boundary_dataset(main: Sequence[Mapping[str, Any]]) -> list[dict[str, 
                 "source_turn_id": source["id"],
                 "query": source["query"],
                 "expected_action": label,
+                "history": source.get("history", []),
                 "synthetic": True,
                 "provenance": PROVENANCE,
             }

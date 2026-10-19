@@ -1,0 +1,62 @@
+[
+  {
+    "query": "SWE-agent 的核心贡献是什么？",
+    "answer": "SWE-agent 是一个让语言模型智能体能够自主使用计算机解决软件工程任务的系统，其定制的智能体-计算机接口（ACI）显著增强了智能体创建和编辑代码文件、浏览整个代码库以及执行测试和其他程序的能力。",
+    "chunk_id": "sweagent:0001:5308922d1c1b",
+    "support_quote": "we introduce SWE-agent: a system that facilitates LM agents to autonomously use computers to solve software engineering tasks. SWE-agent’s custom agent-computer interface (ACI) significantly enhances an agent’s ability",
+    "paper_id": "sweagent",
+    "title": "SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering",
+    "ground_truth_chunk_ids": [
+      "sweagent:0001:5308922d1c1b"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "SWE-agent 的搜索接口如何避免冗长的搜索结果？",
+    "answer": "SWE-agent 的搜索命令通过抑制冗长的结果来鼓励高效搜索，返回的匹配结果最多为 50 条。",
+    "chunk_id": "sweagent:0016:a4e172e01c41",
+    "support_quote": "Our interface encourages efficient searches by suppressing verbose results. The search commands return at most 50",
+    "paper_id": "sweagent",
+    "title": "SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering",
+    "ground_truth_chunk_ids": [
+      "sweagent:0016:a4e172e01c41"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "SWE-agent 的文件编辑器在设计上如何支持高效编辑？",
+    "answer": "SWE-agent 的文件编辑器和查看器把编辑过程整合为单一命令，支持便捷的多行编辑并提供一致反馈，编辑后还会自动更新智能体所看到的文件视图。",
+    "chunk_id": "sweagent:0030:3e79eb6e6ba7",
+    "support_quote": "SWE-agent’s file editor and viewer are designed to consolidate the editing process into a single command that enables easy multi-line edits with consistent feedback and automatically updates the agent’s view of the file after editing.",
+    "paper_id": "sweagent",
+    "title": "SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering",
+    "ground_truth_chunk_ids": [
+      "sweagent:0030:3e79eb6e6ba7"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "SWE-agent 在评估中如何考察多次运行之间的性能波动？",
+    "answer": "多次运行模型或系统可以显示 % Resolved 指标在两次运行之间的方差，并帮助了解已解决问题的分布；作者发现平均性能方差相对较低，但单个实例是否被解决可能变化很大。",
+    "chunk_id": "sweagent:0262:e49187b7ed47",
+    "support_quote": "Running a model or system multiple times shows the variance of the % Resolved metrics from one run to the next, and also gives insight into the distribution of problems that are solved.",
+    "paper_id": "sweagent",
+    "title": "SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering",
+    "ground_truth_chunk_ids": [
+      "sweagent:0262:e49187b7ed47"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "SWE-agent 中为常见错误编写提示（tips）这一做法有什么局限？",
+    "answer": "作者指出，手动编写提示的方式显然无法扩展，但把常见错误的反馈表示为提示却出奇地有效。",
+    "chunk_id": "sweagent:0059:a640b01eeda3",
+    "support_quote": "While our manual approach to writing tips certainly does not scale, representing feedback for common mistakes as tips is surprisingly effective.",
+    "paper_id": "sweagent",
+    "title": "SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering",
+    "ground_truth_chunk_ids": [
+      "sweagent:0059:a640b01eeda3"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

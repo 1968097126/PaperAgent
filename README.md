@@ -1,769 +1,104 @@
+# PaperAgent
 
+面向本地科研论文库的多轮检索问答 Agent，基于 nano-cc 改造。支持追问中的指代消解、混合检索、证据检查、带引用回答和会话记忆，并记录每轮各阶段的输入、输出和耗时。
 
-<div align="center">
-  <a href="[https://github.com/SafeRL-Lab/Robust-Gymnasium](https://github.com/SafeRL-Lab/nano-claude-code)">
-    <img src="https://github.com/SafeRL-Lab/nano-claude-code/blob/main/docs/logo-v1.png" alt="Logo" width="280"> 
-  </a>
+```text
+用户问题 → Guardrails → NLU → Retrieve → Rerank → Reflect → Generate → Memory
+                                                 ↓
+                                          证据不足时重检或拒答
+```
 
-  
-<h1 align="center" style="font-size: 30px;"><strong><em>Nano Claude Code</em></strong>: A Minimal Python Reimplementation</h1>
-<p align="center">
-    <a href="https://github.com/chauncygu/collection-claude-code-source-code">The newest source of Claude Code</a>
-    ·
-    <a href="https://github.com/SafeRL-Lab/nano-claude-code/issues">Issue</a>
-  </p>
-</div>
+检索使用 BGE-M3 + FAISS、BM25、RRF 和 Cross-Encoder；默认上手示例使用 DeepSeek 的 OpenAI 兼容接口。附带 [20 篇 Agent / LLM 论文清单](corpus/selected_papers.md)及评测数据。
 
- <div align=center>
- <img src="https://github.com/SafeRL-Lab/nano-claude-code/blob/main/docs/demo.gif" width="850"/> 
- </div>
-<div align=center>
-<center style="color:#000000;text-decoration:underline"> </center>
- </div>
+## 快速开始
 
----
+以下命令在项目根目录运行，适用于 macOS / Linux，建议使用 Python 3.11。
 
-> **Research-agent fork:** this repository is being developed from `tyronnescott/nano-cc` into a
-> multi-turn, evidence-grounded research-paper QA agent. The inherited provider/AgentState/tool/
-> permission/compaction/REPL harness remains attributed to nano-cc; retrieval and pipeline modules
-> are this fork's additions. MCP, LangChain, and LangGraph are intentionally not implemented.
-
-See `docs/implementation_status.md` for verified Phase status and reproducible commands.
-
-## 🔥🔥🔥 News (Pacific Time)
-- 01:47 PM, Apr 01, 2026: Support VLLM inference (**~2000** lines of Python Code)
-- 11:30 AM, Apr 01, 2026: Support more **closed-source** models and **open-source models**: Claude, GPT, Gemini, Kimi, Qwen, Zhipu, DeepSeek, and local open-source models via Ollama or any OpenAI-compatible endpoint. (**~1700** lines of Python Code)
-- 09:50 AM, Apr 01, 2026: Support more **closed-source** models: Claude, GPT, Gemini. (**~1300** lines of Python Code)
-- 08:23 AM, Apr 01, 2026: Release the initial version of Nano Claude Code (**~900 lines** of Python Code)
-
----
-
-# Nano Claude Code
-
-A minimal Python implementation of Claude Code in ~900 lines (Initial version), **supporting Claude, GPT, Gemini, Kimi, Qwen, Zhipu, DeepSeek, and local open-source models via Ollama or any OpenAI-compatible endpoint.**
-
----
-
-## Content
-  * [Features](#features)
-  * [Supported Models](#supported-models)
-    + [Closed-Source (API)](#closed-source--api-)
-    + [Open-Source (Local via Ollama)](#open-source--local-via-ollama-)
-  * [Installation](#installation)
-  * [Usage: Closed-Source API Models](#usage--closed-source-api-models)
-    + [Anthropic Claude](#anthropic-claude)
-    + [OpenAI GPT](#openai-gpt)
-    + [Google Gemini](#google-gemini)
-    + [Kimi (Moonshot AI)](#kimi--moonshot-ai-)
-    + [Qwen (Alibaba DashScope)](#qwen--alibaba-dashscope-)
-    + [Zhipu GLM](#zhipu-glm)
-    + [DeepSeek](#deepseek)
-  * [Usage: Open-Source Models (Local)](#usage--open-source-models--local-)
-    + [Option A — Ollama (Recommended)](#option-a---ollama--recommended-)
-    + [Option B — LM Studio](#option-b---lm-studio)
-    + [Option C — vLLM / Self-Hosted OpenAI-Compatible Server](#option-c---vllm---self-hosted-openai-compatible-server)
-  * [Model Name Format](#model-name-format)
-  * [CLI Reference](#cli-reference)
-  * [Slash Commands (REPL)](#slash-commands--repl-)
-  * [Evaluation](#evaluation)
-  * [Configuring API Keys](#configuring-api-keys)
-    + [Method 1: Environment Variables (recommended)](#method-1--environment-variables--recommended-)
-    + [Method 2: Set Inside the REPL (persisted)](#method-2--set-inside-the-repl--persisted-)
-    + [Method 3: Edit the Config File Directly](#method-3--edit-the-config-file-directly)
-  * [Permission System](#permission-system)
-  * [Built-in Tools](#built-in-tools)
-  * [CLAUDE.md Support](#claudemd-support)
-  * [Session Management](#session-management)
-  * [Project Structure](#project-structure)
-  * [FAQ](#faq)
-
-
-
-
-## Features
-
-| Feature | Details |
-|---|---|
-| Multi-provider | Anthropic · OpenAI · Gemini · Kimi · Qwen · Zhipu · DeepSeek · Ollama · LM Studio · Custom endpoint |
-| Research REPL | Seven-stage paper QA, readline history, Tab-complete slash commands |
-| Agent loop | Streaming API + automatic tool-use loop |
-| 8 built-in tools | Read · Write · Edit · Bash · Glob · Grep · WebFetch · WebSearch |
-| Permission system | `auto` / `accept-all` / `manual` modes |
-| 18 slash commands | `/trace` · `/corpus` · `/memory` · `/model` · `/save` · … |
-| Context injection | Auto-loads `CLAUDE.md`, git status, cwd |
-| Session persistence | Save / load conversations to `~/.nano_claude/sessions/` |
-| Extended Thinking | Toggle on/off (Claude and DeepSeek V4 models) |
-| Cost tracking | Token usage + estimated USD cost |
-| Non-interactive mode | `--print` flag for scripting / CI |
-
----
-
-## Supported Models
-
-### Closed-Source (API)
-
-| Provider | Model | Context | Strengths | API Key Env |
-|---|---|---|---|---|
-| **Anthropic** | `claude-opus-4-6` | 200k | Most capable, best for complex reasoning | `ANTHROPIC_API_KEY` |
-| **Anthropic** | `claude-sonnet-4-6` | 200k | Balanced speed & quality | `ANTHROPIC_API_KEY` |
-| **Anthropic** | `claude-haiku-4-5-20251001` | 200k | Fast, cost-efficient | `ANTHROPIC_API_KEY` |
-| **OpenAI** | `gpt-5.6-sol` | 128k | Highest-quality GPT-5.6 option | `OPENAI_API_KEY` |
-| **OpenAI** | `gpt-5.6-terra` | 128k | Balanced GPT-5.6 option | `OPENAI_API_KEY` |
-| **OpenAI** | `gpt-5.6-luna` | 128k | Fast, cost-efficient GPT-5.6 option | `OPENAI_API_KEY` |
-| **OpenAI** | `gpt-4.1`, `gpt-4.1-mini` | 128k | Compatible general models | `OPENAI_API_KEY` |
-| **Google** | `gemini-2.5-pro-preview-03-25` | 1M | Long context, multimodal | `GEMINI_API_KEY` |
-| **Google** | `gemini-2.0-flash` | 1M | Fast, large context | `GEMINI_API_KEY` |
-| **Google** | `gemini-1.5-pro` | 2M | Largest context window | `GEMINI_API_KEY` |
-| **Moonshot (Kimi)** | `moonshot-v1-8k` | 8k | Chinese & English | `MOONSHOT_API_KEY` |
-| **Moonshot (Kimi)** | `moonshot-v1-32k` | 32k | Chinese & English | `MOONSHOT_API_KEY` |
-| **Moonshot (Kimi)** | `moonshot-v1-128k` | 128k | Long context | `MOONSHOT_API_KEY` |
-| **Alibaba (Qwen)** | `qwen-max` | 32k | Best Qwen quality | `DASHSCOPE_API_KEY` |
-| **Alibaba (Qwen)** | `qwen-plus` | 128k | Balanced | `DASHSCOPE_API_KEY` |
-| **Alibaba (Qwen)** | `qwen-turbo` | 1M | Fast, cheap | `DASHSCOPE_API_KEY` |
-| **Alibaba (Qwen)** | `qwq-32b` | 32k | Strong reasoning | `DASHSCOPE_API_KEY` |
-| **Zhipu (GLM)** | `glm-4-plus` | 128k | Best GLM quality | `ZHIPU_API_KEY` |
-| **Zhipu (GLM)** | `glm-4` | 128k | General purpose | `ZHIPU_API_KEY` |
-| **Zhipu (GLM)** | `glm-4-flash` | 128k | Free tier available | `ZHIPU_API_KEY` |
-| **DeepSeek** | `deepseek-v4-flash` | 64k | Fast text model | `DEEPSEEK_API_KEY` |
-| **DeepSeek** | `deepseek-v4-pro` | 64k | Higher-quality text model | `DEEPSEEK_API_KEY` |
-| **DeepSeek** | `deepseek-v4-flash-vision-exp` | 64k | Experimental vision model | `DEEPSEEK_API_KEY` |
-
-### Open-Source (Local via Ollama)
-
-| Model | Size | Strengths | Pull Command |
-|---|---|---|---|
-| `llama3.3` | 70B | General purpose, strong reasoning | `ollama pull llama3.3` |
-| `llama3.2` | 3B / 11B | Lightweight | `ollama pull llama3.2` |
-| `qwen2.5-coder` | 7B / 32B | **Best for coding tasks** | `ollama pull qwen2.5-coder` |
-| `qwen2.5` | 7B / 72B | Chinese & English | `ollama pull qwen2.5` |
-| `deepseek-r1` | 7B–70B | Reasoning, math | `ollama pull deepseek-r1` |
-| `deepseek-coder-v2` | 16B | Coding | `ollama pull deepseek-coder-v2` |
-| `mistral` | 7B | Fast, efficient | `ollama pull mistral` |
-| `mixtral` | 8x7B | Strong MoE model | `ollama pull mixtral` |
-| `phi4` | 14B | Microsoft, strong reasoning | `ollama pull phi4` |
-| `gemma3` | 4B / 12B / 27B | Google open model | `ollama pull gemma3` |
-| `codellama` | 7B / 34B | Code generation | `ollama pull codellama` |
-
-> **Note:** Tool calling requires a model that supports function calling. Recommended local models: `qwen2.5-coder`, `llama3.3`, `mistral`, `phi4`.
-
----
-
-## Installation
+### 1. 安装环境
 
 ```bash
-git clone <repo-url>
-cd nano_claude_code
-
-pip install -r requirements.txt
-# or manually:
-pip install anthropic openai httpx rich
+python3.11 -m venv --prompt paperagent .venvs/paperagent
+source .venvs/paperagent/bin/activate
+python -m pip install -r requirements.txt
 ```
 
----
+首次下载模型需要网络和数 GB 磁盘空间。`requirements.lock.txt` 保存本次实验环境的精确依赖版本，需要复现实验环境时可用它替代 `requirements.txt`。
 
-## Usage: Closed-Source API Models
-
-### Anthropic Claude
-
-Get your API key at [console.anthropic.com](https://console.anthropic.com).
+### 2. 配置 API
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-api03-...
-
-# Default model (claude-opus-4-6)
-python nano_claude.py
-
-# Choose a specific model
-python nano_claude.py --model claude-sonnet-4-6
-python nano_claude.py --model claude-haiku-4-5-20251001
-
-# Enable Extended Thinking
-python nano_claude.py --model claude-opus-4-6 --thinking --verbose
+cp .env.example .env
 ```
 
-### OpenAI GPT
+编辑 `.env`，填写自己的密钥；若已有 `.env`，直接编辑即可：
 
-Get your API key at [platform.openai.com](https://platform.openai.com).
+```dotenv
+DEEPSEEK_API_KEY=你的密钥
+NANOCC_MODEL_CACHE_DIR=.cache/models
+```
+
+`deepseek-flash` 使用 `https://api.deepseek.com`。真实问答和模型评测会产生 API 费用。`.env` 已被 Git 忽略。
+
+### 3. 下载论文并建立索引
 
 ```bash
-export OPENAI_API_KEY=sk-...
-
-python nano_claude.py --model gpt-5.6-sol
-python nano_claude.py --model gpt-5.6-terra
-python nano_claude.py --model gpt-5.6-luna
+python -m corpus.acquire_selected
+python -m corpus.build_index --cache-dir .cache/models --device cpu --batch-size 8
 ```
 
-### Google Gemini
+脚本按固定清单下载全文并提取文本，然后生成分块、FAISS 和 BM25 索引。首次执行较慢；已下载的论文和有效索引会复用。Apple Silicon 可将 `cpu` 改为 `mps`，有 CUDA 的环境可改为 `cuda`。
 
-Get your API key at [aistudio.google.com](https://aistudio.google.com).
+论文全文、模型权重和索引不随 Git 仓库分发，通过脚本在本地生成。论文的版权和使用条件以原发布方为准。
+
+### 4. 开始问答
 
 ```bash
-export GEMINI_API_KEY=AIza...
+# 交互式多轮对话
+python nano_claude.py --model deepseek-flash
 
-python nano_claude.py --model gemini/gemini-2.0-flash
-python nano_claude.py --model gemini/gemini-1.5-pro
-python nano_claude.py --model gemini/gemini-2.5-pro-preview-03-25
+# 单次提问
+python nano_claude.py --model deepseek-flash -p "Self-RAG 的核心贡献是什么？"
 ```
 
-### Kimi (Moonshot AI)
+可继续追问“它与 Reflexion 有什么区别？”。交互模式中的常用命令：
 
-Get your API key at [platform.moonshot.cn](https://platform.moonshot.cn).
+| 命令 | 用途 |
+| --- | --- |
+| `/corpus` | 查看语料和索引状态 |
+| `/trace` | 查看问答执行记录 |
+| `/memory` | 查看会话记忆 |
+| `/help` | 查看全部命令 |
+| `/quit` | 退出 |
+
+## 测试与评测
 
 ```bash
-export MOONSHOT_API_KEY=sk-...
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
 
-python nano_claude.py --model kimi/moonshot-v1-32k
-python nano_claude.py --model kimi/moonshot-v1-128k
+# 索引建好后，校验附带的评测数据
+python -m eval.validate_datasets
+
+# 完整模型实验：组件、检索、Reflect 与记忆消融
+python -m eval.run_rebuild --suite all --device cpu
 ```
 
-### Qwen (Alibaba DashScope)
+完整实验会调用 API，逐项保存结果并支持断点续跑。输出位于 `eval/results/rebuild-20261019/`；独立重跑时使用 `--output-dir eval/results/my-run`。
 
-Get your API key at [dashscope.aliyun.com](https://dashscope.aliyun.com).
+本次基线：意图准确率 **80.0%**，混合检索加重排序 Recall@5 **68.0%**，E70 端到端成功率 **57.1%**。数据为模型辅助生成、待人工复核的开发评测集，不代表独立泛化成绩。指标口径、消融结果与限制见 [实验说明](docs/experiments.md)。
 
-```bash
-export DASHSCOPE_API_KEY=sk-...
+## 目录
 
-python nano_claude.py --model qwen/qwen-max
-python nano_claude.py --model qwen/qwq-32b
-python nano_claude.py --model qwen/qwen2.5-coder-32b-instruct
-```
+| 路径 | 内容 |
+| --- | --- |
+| `nano_claude.py` | 命令行入口，默认运行论文问答 |
+| `pipeline/` | 七阶段编排、记忆和执行记录 |
+| `retrieval/` | 分块、向量 / BM25 检索、融合与重排序 |
+| `corpus/` | 论文清单、下载和索引构建 |
+| `eval/` | 数据、指标、实验与标注复核工具 |
+| `tests/` | 自动化测试及离线测试样例 |
+| `docs/` | 最终实验说明和结果快照 |
 
-### Zhipu GLM
+## 项目来源
 
-Get your API key at [open.bigmodel.cn](https://open.bigmodel.cn).
-
-```bash
-export ZHIPU_API_KEY=...
-
-python nano_claude.py --model zhipu/glm-4-plus
-python nano_claude.py --model zhipu/glm-4-flash   # free tier
-```
-
-### DeepSeek
-
-Get your API key at [platform.deepseek.com](https://platform.deepseek.com).
-
-```bash
-export DEEPSEEK_API_KEY=sk-...
-
-python nano_claude.py --model deepseek/deepseek-v4-flash
-python nano_claude.py --model deepseek/deepseek-v4-pro
-```
-
----
-
-## Usage: Open-Source Models (Local)
-
-### Option A — Ollama (Recommended)
-
-Ollama runs models locally with zero configuration. No API key required.
-
-**Step 1: Install Ollama**
-
-```bash
-# macOS / Linux
-curl -fsSL https://ollama.com/install.sh | sh
-
-# Or download from https://ollama.com/download
-```
-
-**Step 2: Pull a model**
-
-```bash
-# Best for coding (recommended)
-ollama pull qwen2.5-coder          # 4.7 GB (7B)
-ollama pull qwen2.5-coder:32b      # 19 GB (32B)
-
-# General purpose
-ollama pull llama3.3               # 42 GB (70B)
-ollama pull llama3.2               # 2.0 GB (3B)
-
-# Reasoning
-ollama pull deepseek-r1            # 4.7 GB (7B)
-ollama pull deepseek-r1:32b        # 19 GB (32B)
-
-# Other
-ollama pull phi4                   # 9.1 GB (14B)
-ollama pull mistral                # 4.1 GB (7B)
-```
-
-**Step 3: Start Ollama server** (runs automatically on macOS; on Linux run manually)
-
-```bash
-ollama serve     # starts on http://localhost:11434
-```
-
-**Step 4: Run nano claude**
-
-```bash
-python nano_claude.py --model ollama/qwen2.5-coder
-python nano_claude.py --model ollama/llama3.3
-python nano_claude.py --model ollama/deepseek-r1
-```
-
-**List your locally available models:**
-
-```bash
-ollama list
-```
-
-Then use any model from the list:
-
-```bash
-python nano_claude.py --model ollama/<model-name>
-```
-
----
-
-### Option B — LM Studio
-
-LM Studio provides a GUI to download and run models, with a built-in OpenAI-compatible server.
-
-**Step 1:** Download [LM Studio](https://lmstudio.ai) and install it.
-
-**Step 2:** Search and download a model inside LM Studio (GGUF format).
-
-**Step 3:** Go to **Local Server** tab → click **Start Server** (default port: 1234).
-
-**Step 4:**
-
-```bash
-python nano_claude.py --model lmstudio/<model-name>
-# e.g.:
-python nano_claude.py --model lmstudio/phi-4-GGUF
-python nano_claude.py --model lmstudio/qwen2.5-coder-7b
-```
-
-The model name should match what LM Studio shows in the server status bar.
-
----
-
-### Option C — vLLM / Self-Hosted OpenAI-Compatible Server
-
-For self-hosted inference servers (vLLM, TGI, llama.cpp server, etc.) that expose an OpenAI-compatible API:
-
-Quick Start for option C:
-Step 1: Start vllm:
- ```
-CUDA_VISIBLE_DEVICES=7 python -m vllm.entrypoints.openai.api_server \
-      --model Qwen/Qwen2.5-Coder-7B-Instruct \
-      --host 0.0.0.0 \
-      --port 8000 \
-      --enable-auto-tool-choice \
-      --tool-call-parser hermes
-```
-
-
- Step 2: Start nano claude：
-```
-  export CUSTOM_BASE_URL=http://localhost:8000/v1
-  export CUSTOM_API_KEY=none
-  python nano_claude.py --model custom/Qwen/Qwen2.5-Coder-7B-Instruct
-```
-
-
-```bash
-# Example: vLLM serving Qwen2.5-Coder-32B
-python -m vllm.entrypoints.openai.api_server \
-    --model Qwen/Qwen2.5-Coder-32B-Instruct \
-    --port 8000
-
-# Then run nano claude pointing to your server:
-python nano_claude.py
-```
-
-Inside the REPL:
-
-```
-/config custom_base_url=http://localhost:8000/v1
-/config custom_api_key=token-abc123    # skip if no auth
-/model custom/Qwen2.5-Coder-32B-Instruct
-```
-
-Or set via environment:
-
-```bash
-export CUSTOM_BASE_URL=http://localhost:8000/v1
-export CUSTOM_API_KEY=token-abc123
-
-python nano_claude.py --model custom/Qwen2.5-Coder-32B-Instruct
-```
-
-For a remote GPU server:
-
-```bash
-/config custom_base_url=http://192.168.1.100:8000/v1
-/model custom/your-model-name
-```
-
----
-
-## Model Name Format
-
-Three equivalent formats are supported:
-
-```bash
-# 1. Auto-detect by prefix (works for well-known models)
-python nano_claude.py --model gpt-5.6-luna
-python nano_claude.py --model gemini-2.0-flash
-python nano_claude.py --model deepseek-v4-flash
-
-# 2. Explicit provider prefix with slash
-python nano_claude.py --model ollama/qwen2.5-coder
-python nano_claude.py --model kimi/moonshot-v1-128k
-
-# 3. Explicit provider prefix with colon (also works)
-python nano_claude.py --model kimi:moonshot-v1-32k
-python nano_claude.py --model qwen:qwen-max
-```
-
-**Auto-detection rules:**
-
-| Model prefix | Detected provider |
-|---|---|
-| `claude-` | anthropic |
-| `gpt-`, `o1`, `o3` | openai |
-| `gemini-` | gemini |
-| `moonshot-`, `kimi-` | kimi |
-| `qwen`, `qwq-` | qwen |
-| `glm-` | zhipu |
-| `deepseek-` | deepseek |
-| `llama`, `mistral`, `phi`, `gemma`, `mixtral`, `codellama` | ollama |
-
----
-
-## CLI Reference
-
-```
-python nano_claude.py [OPTIONS] [PROMPT]
-
-Options:
-  -p, --print          Non-interactive: run prompt and exit
-  -m, --model MODEL    Override model (e.g. gpt-5.6-luna, deepseek-v4-flash)
-  --accept-all         Auto-approve all operations (no permission prompts)
-  --verbose            Show thinking blocks and per-turn token counts
-  --thinking           Enable Extended Thinking where supported
-  --coding             Use the inherited coding-agent loop
-  --version            Print version and exit
-  -h, --help           Show help
-```
-
-**Examples:**
-
-```bash
-# Interactive research-paper REPL with the default model
-python nano_claude.py
-
-# Switch model at startup
-python nano_claude.py --model gpt-5.6-luna
-python nano_claude.py -m deepseek-v4-flash
-
-# Non-interactive / scripting
-python nano_claude.py --print "比较语料中两种方法的实验结论"
-python nano_claude.py -p "这篇论文的主要局限是什么？" -m deepseek-v4-flash
-
-# Retain the inherited coding-agent interface for offline development
-python nano_claude.py --coding --print "Explain this repository structure"
-
-# Debug mode (see tokens + thinking)
-python nano_claude.py --thinking --verbose
-```
-
----
-
-## Slash Commands (REPL)
-
-Type `/` and press **Tab** to autocomplete.
-
-| Command | Description |
-|---|---|
-| `/help` | Show all commands |
-| `/clear` | Clear conversation history |
-| `/model` | Show current model + list all available models |
-| `/model <name>` | Switch model (takes effect immediately) |
-| `/config` | Show all current config values |
-| `/config key=value` | Set a config value (persisted to disk) |
-| `/save` | Save session (auto-named by timestamp) |
-| `/save <filename>` | Save session to named file |
-| `/load` | List all saved sessions |
-| `/load <filename>` | Load a saved session |
-| `/history` | Print full conversation history |
-| `/context` | Show message count and token estimate |
-| `/trace [turn_id]` | Show the latest or selected seven-stage turn trace |
-| `/corpus` | Show paper/chunk counts, index health, and retrieval models |
-| `/memory [off\|on\|compressed]` | Show structured memory or change its mode |
-| `/cost` | Show token usage and estimated USD cost |
-| `/verbose` | Toggle verbose mode (tokens + thinking) |
-| `/thinking` | Toggle Extended Thinking where supported |
-| `/permissions` | Show current permission mode |
-| `/permissions <mode>` | Set permission mode: `auto` / `accept-all` / `manual` |
-| `/cwd` | Show current working directory |
-| `/cwd <path>` | Change working directory |
-| `/exit` / `/quit` | Exit |
-
-**Switching models inside a session:**
-
-```
-[myproject] ❯ /model
-  Current model: claude-opus-4-6  (provider: anthropic)
-
-  Available models by provider:
-    anthropic     claude-opus-4-6, claude-sonnet-4-6, ...
-    openai        gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna, ...
-    ollama        llama3.3, llama3.2, phi4, mistral, ...
-    ...
-
-[myproject] ❯ /model gpt-5.6-luna
-  Model set to gpt-5.6-luna  (provider: openai)
-
-[myproject] ❯ /model ollama/qwen2.5-coder
-  Model set to ollama/qwen2.5-coder  (provider: ollama)
-```
-
----
-
-## Evaluation
-
-Phase 6 includes five deterministic JSONL datasets and strict validation. They are
-**synthetic annotations grounded in real corpus chunk IDs**, not human-labelled data.
-E is a 70-turn subset of M and is not counted twice when reporting dataset scope.
-
-```bash
-# Rebuild and validate M/I/R/B/E without calling a Provider
-conda run -n nanocc python -m eval.run_evaluation \
-  --suite datasets --build-datasets --seed 42
-conda run -n nanocc python -m eval.validate_datasets \
-  --data-dir eval/data --chunks corpus/chunks.jsonl
-
-# Export the human-review workbook without changing dataset provenance
-conda run -n nanocc python -m eval.review_annotations export \
-  --data-dir eval/data --chunks corpus/chunks.jsonl \
-  --review-dir eval/review/work
-
-# Local dense vs hybrid vs hybrid+rerank evaluation
-conda run -n nanocc python -m eval.run_evaluation \
-  --suite retrieval --device cpu --seed 42 \
-  --output-dir eval/results/retrieval
-```
-
-Provider-backed Intent, Rewrite, Guardrails, Reflect, E2E, citation, Memory, and token
-evaluations use `--suite provider` or `--suite all` and require the selected Provider's
-environment variable. See [`docs/evaluation.md`](docs/evaluation.md) for schemas and
-metrics, and [`eval/review/README.md`](eval/review/README.md) for the required manual
-annotation-review procedure. The data keeps its synthetic origin; its separate human-
-review status remains pending until that review is complete and explicitly confirmed.
-
----
-
-## Configuring API Keys
-
-### Method 1: Environment Variables (recommended)
-
-```bash
-# Add to ~/.bashrc or ~/.zshrc
-export ANTHROPIC_API_KEY=sk-ant-...
-export OPENAI_API_KEY=sk-...
-export GEMINI_API_KEY=AIza...
-export MOONSHOT_API_KEY=sk-...       # Kimi
-export DASHSCOPE_API_KEY=sk-...      # Qwen
-export ZHIPU_API_KEY=...             # Zhipu GLM
-export DEEPSEEK_API_KEY=sk-...       # DeepSeek
-```
-
-### Method 2: Set Inside the REPL (persisted)
-
-```
-/config anthropic_api_key=sk-ant-...
-/config openai_api_key=sk-...
-/config gemini_api_key=AIza...
-/config kimi_api_key=sk-...
-/config qwen_api_key=sk-...
-/config zhipu_api_key=...
-/config deepseek_api_key=sk-...
-```
-
-Keys are saved to `~/.nano_claude/config.json` and loaded automatically on next launch.
-
-### Method 3: Edit the Config File Directly
-
-```json
-// ~/.nano_claude/config.json
-{
-  "model": "qwen/qwen-max",
-  "max_tokens": 8192,
-  "permission_mode": "auto",
-  "verbose": false,
-  "thinking": false,
-  "qwen_api_key": "sk-...",
-  "kimi_api_key": "sk-...",
-  "deepseek_api_key": "sk-..."
-}
-```
-
----
-
-## Permission System
-
-| Mode | Behavior |
-|---|---|
-| `auto` (default) | Read-only operations always allowed. Prompts before Bash commands and file writes. |
-| `accept-all` | Never prompts. All operations proceed automatically. |
-| `manual` | Prompts before every single operation, including reads. |
-
-**When prompted:**
-
-```
-  Allow: Run: git commit -am "fix bug"  [y/N/a(ccept-all)]
-```
-
-- `y` — approve this one action
-- `n` or Enter — deny
-- `a` — approve and switch to `accept-all` for the rest of the session
-
-**Commands always auto-approved in `auto` mode:**
-`ls`, `cat`, `head`, `tail`, `wc`, `pwd`, `echo`, `git status`, `git log`, `git diff`, `git show`, `find`, `grep`, `rg`, `python`, `node`, `pip show`, `npm list`, and other read-only shell commands.
-
----
-
-## Built-in Tools
-
-| Tool | Description | Key Parameters |
-|---|---|---|
-| `Read` | Read file with line numbers | `file_path`, `limit`, `offset` |
-| `Write` | Create or overwrite file | `file_path`, `content` |
-| `Edit` | Exact string replacement in file | `file_path`, `old_string`, `new_string`, `replace_all` |
-| `Bash` | Execute shell command | `command`, `timeout` (default 30s) |
-| `Glob` | Find files by glob pattern | `pattern` (e.g. `**/*.py`), `path` |
-| `Grep` | Regex search in files (uses ripgrep if available) | `pattern`, `path`, `glob`, `output_mode` |
-| `WebFetch` | Fetch and extract text from URL | `url`, `prompt` |
-| `WebSearch` | Search the web via DuckDuckGo | `query` |
-
----
-
-## CLAUDE.md Support
-
-Place a `CLAUDE.md` file in your project to give the model persistent context about your codebase. Nano Claude automatically finds and injects it into the system prompt.
-
-```
-~/.claude/CLAUDE.md          # Global — applies to all projects
-/your/project/CLAUDE.md      # Project-level — found by walking up from cwd
-```
-
-**Example `CLAUDE.md`:**
-
-```markdown
-# Project: FastAPI Backend
-
-## Stack
-- Python 3.12, FastAPI, PostgreSQL, SQLAlchemy 2.0, Alembic
-- Tests: pytest, coverage target 90%
-
-## Conventions
-- Format with black, lint with ruff
-- Full type annotations required
-- New endpoints must have corresponding tests
-
-## Important Notes
-- Never hard-code credentials — use environment variables
-- Do not modify existing Alembic migration files
-- The `staging` branch deploys automatically to staging on push
-```
-
----
-
-## Session Management
-
-```bash
-# Inside REPL:
-/save                          # auto-name: session_20260401_143022.json
-/save debug_auth_bug           # named save
-
-/load                          # list all saved sessions
-/load debug_auth_bug           # resume a session
-/load session_20260401_143022.json
-```
-
-Sessions are stored as JSON in `~/.nano_claude/sessions/`.
-
----
-
-## Project Structure
-
-```
-nano_claude_code/
-├── nano_claude.py   # Entry point: REPL + slash commands + output rendering  (~580 lines)
-├── agent.py         # Agent loop: neutral message format + tool dispatch      (~160 lines)
-├── providers.py     # Multi-provider: adapters + message format conversion    (~480 lines)
-├── tools.py         # 8 tool implementations + JSON schemas                  (~360 lines)
-├── context.py       # System prompt builder: CLAUDE.md + git + cwd           (~100 lines)
-├── config.py        # Config load/save/defaults                               (~70 lines)
-├── demo.py          # Demo script (requires API key)
-├── make_demo.py     # Generates demo.gif and screenshot.png
-├── demo.gif         # Animated demo
-├── screenshot.png   # Static screenshot
-└── requirements.txt
-```
-
----
-
-## FAQ
-
-**Q: Tool calls don't work with my local Ollama model.**
-
-Not all models support function calling. Use one of the recommended tool-calling models: `qwen2.5-coder`, `llama3.3`, `mistral`, or `phi4`.
-
-```bash
-ollama pull qwen2.5-coder
-python nano_claude.py --model ollama/qwen2.5-coder
-```
-
-**Q: How do I connect to a remote GPU server running vLLM?**
-
-```
-/config custom_base_url=http://your-server-ip:8000/v1
-/config custom_api_key=your-token
-/model custom/your-model-name
-```
-
-**Q: How do I check my API cost?**
-
-```
-/cost
-
-  Input tokens:  3,421
-  Output tokens:   892
-  Est. cost:     $0.0648 USD
-```
-
-**Q: Can I use multiple API keys in the same session?**
-
-Yes. Set all the keys you need upfront (via env vars or `/config`). Then switch models freely — each call uses the key for the active provider.
-
-**Q: How do I make a model available across all projects?**
-
-Add keys to `~/.bashrc` or `~/.zshrc`. Set the default model in `~/.nano_claude/config.json`:
-
-```json
-{ "model": "claude-sonnet-4-6" }
-```
-
-**Q: Qwen / Zhipu returns garbled text.**
-
-Ensure your `DASHSCOPE_API_KEY` / `ZHIPU_API_KEY` is correct and the account has sufficient quota. Both providers use UTF-8 and handle Chinese well.
-
-**Q: Can I pipe input to nano claude?**
-
-```bash
-echo "Explain this file" | python nano_claude.py --print --accept-all
-cat error.log | python nano_claude.py -p "What is causing this error?"
-```
-
-**Q: How do I run it as a CLI tool from anywhere?**
-
-```bash
-# Add an alias to ~/.bashrc or ~/.zshrc
-alias nc='python /path/to/nano_claude_code/nano_claude.py'
-
-# Or install as a script
-pip install -e .   # if setup.py exists
-```
+本项目沿用 [nano-cc](https://github.com/tyronnescott/nano-cc) 的 Agent Harness 思路及已有代码，保留模型接口、工具、权限、压缩与 CLI 能力，增加论文检索和七阶段问答流程。上游增强版本见 [nano-claude-code](https://github.com/SafeRL-Lab/nano-claude-code)。使用 `--coding` 可进入继承的编码 Agent 模式。

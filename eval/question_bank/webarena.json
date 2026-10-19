@@ -1,0 +1,62 @@
+[
+  {
+    "query": "WebArena 的核心贡献是什么？",
+    "answer": "WebArena 构建了一个高度真实且可复现的、面向语言引导智能体的网页环境，包含四个常见领域的完整功能网站，并基于该环境发布了一套评估任务完成功能正确性的基准任务。",
+    "chunk_id": "webarena:0001:20ce943e80ca",
+    "support_quote": "In this paper, we build an environment for language-guided agents that is highly realistic and reproducible. Specifically, we focus on agents that perform tasks on the web",
+    "paper_id": "webarena",
+    "title": "WebArena: A Realistic Web Environment for Building Autonomous Agents",
+    "ground_truth_chunk_ids": [
+      "webarena:0001:20ce943e80ca"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "WebArena 如何保证环境的可复现性？",
+    "answer": "WebArena 通过让环境独立运行、不依赖真实在线网站来实现可复现性。",
+    "chunk_id": "webarena:0010:26afef7e6491",
+    "support_quote": "Our goal is to create a realistic and reproducible web environment. We achieve reproducibility by making the environment standalone, without relying on live websites.",
+    "paper_id": "webarena",
+    "title": "WebArena: A Realistic Web Environment for Building Autonomous Agents",
+    "ground_truth_chunk_ids": [
+      "webarena:0010:26afef7e6491"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "WebArena 的基准任务是如何收集的？",
+    "answer": "标注者先花几分钟探索网站以熟悉内容和功能，然后按照标准构思意图，例如意图应抽象且高层，不能仅靠一两个动作完成。",
+    "chunk_id": "webarena:0023:07d0610d5efd",
+    "support_quote": "To start with, our annotators were guided to spend a few minutes exploring the websites to familiarize themselves with the websites’ content and functionalities.",
+    "paper_id": "webarena",
+    "title": "WebArena: A Realistic Web Environment for Building Autonomous Agents",
+    "ground_truth_chunk_ids": [
+      "webarena:0023:07d0610d5efd"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "WebArena 中 GPT-4 使用 CoT 提示的端到端任务成功率是多少？",
+    "answer": "GPT-4 使用 CoT 提示的端到端任务成功率为 11.70%，显著低于人类表现的 78.24%。",
+    "chunk_id": "webarena:0039:61168a759094",
+    "support_quote": "GPT-4 (OpenAI, 2023) with CoT prompting achieves a modest end-to-end task success rate of 11.70%, which is significantly lower than the human performance of 78.24%.",
+    "paper_id": "webarena",
+    "title": "WebArena: A Realistic Web Environment for Building Autonomous Agents",
+    "ground_truth_chunk_ids": [
+      "webarena:0039:61168a759094"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "WebArena 如何评估信息检索类任务？",
+    "answer": "WebArena 将预测答案与标注的参考答案比较，采用 exact_match、must_include 和 fuzzy_match 三种评分函数。",
+    "chunk_id": "webarena:0028:7db3f34f5869",
+    "support_quote": "First, we define exact_match where only ˆa that is identical with a∗receives a score of one. This function is primarily applicable to intent types whose responses follow a more standardized format",
+    "paper_id": "webarena",
+    "title": "WebArena: A Realistic Web Environment for Building Autonomous Agents",
+    "ground_truth_chunk_ids": [
+      "webarena:0028:7db3f34f5869"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

@@ -1,0 +1,62 @@
+[
+  {
+    "query": "PromptBench 的核心贡献是什么？",
+    "answer": "PromptBench 是一个用于评估大语言模型的统一库，包含提示构建、提示工程、数据集与模型加载、对抗提示攻击、动态评估协议和分析工具等关键组件，旨在作为开放、通用且灵活的研究代码库。",
+    "chunk_id": "promptbench:0001:90ca663e5f74",
+    "support_quote": "we introduce PromptBench, a unified library to evaluate LLMs. It consists of several key components that can be easily used and extended by researchers",
+    "paper_id": "promptbench",
+    "title": "PromptBench: A Unified Library for Evaluation of Large Language Models",
+    "ground_truth_chunk_ids": [
+      "promptbench:0001:90ca663e5f74"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "PromptBench 在提示方面提供了哪些类型和工程方法？",
+    "answer": "PromptBench 提供 4 种不同的提示类型，用户还可通过 Prompt 接口自定义提示；同时目前包含 6 种主要的提示工程方法。",
+    "chunk_id": "promptbench:0012:5a2c7aa33dad",
+    "support_quote": "PromptBench offers a suite of 4 distinct prompt types, and additionally, users have the flexibility to craft custom prompts using the Prompt interface.",
+    "paper_id": "promptbench",
+    "title": "PromptBench: A Unified Library for Evaluation of Large Language Models",
+    "ground_truth_chunk_ids": [
+      "promptbench:0012:5a2c7aa33dad"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "PromptBench 默认支持哪种评估协议，还额外支持哪些协议？",
+    "answer": "PromptBench 默认支持标准协议，即直接推理；此外还通过动态生成测试数据支持动态评估协议和语义评估协议。",
+    "chunk_id": "promptbench:0014:078b37ddd95c",
+    "support_quote": "By default, PromptBench supports the standard protocol, i.e., the direct inference. PromptBench further supports dynamic (Zhu et al., 2023a) and semantic (Liu et al., 2023b) evaluation protocols by dynamically generating testing data.",
+    "paper_id": "promptbench",
+    "title": "PromptBench: A Unified Library for Evaluation of Large Language Models",
+    "ground_truth_chunk_ids": [
+      "promptbench:0014:078b37ddd95c"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "PromptBench 在提示工程评估中得到了什么结果？",
+    "answer": "提示工程结果显示，大多数方法只在特定领域有效，因此这些方法并不能在每个数据集上都超过基线。",
+    "chunk_id": "promptbench:0043:c4c9a41b50b1",
+    "support_quote": "Most methods are effective for special fields, so these methods can not surpass the baseline in every dataset.",
+    "paper_id": "promptbench",
+    "title": "PromptBench: A Unified Library for Evaluation of Large Language Models",
+    "ground_truth_chunk_ids": [
+      "promptbench:0043:c4c9a41b50b1"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "PromptBench 存在哪些局限性？",
+    "answer": "PromptBench 可能无法覆盖所有评估场景，某些指标可能遗漏细微的性能差异，且框架效果取决于数据集和提示的质量与多样性。",
+    "chunk_id": "promptbench:0018:ed91319ec25c",
+    "support_quote": "It may not cover all evaluation scenarios, and some metrics might miss nuanced performance differences. The framework’s effectiveness depends on the quality and diversity of datasets and prompts.",
+    "paper_id": "promptbench",
+    "title": "PromptBench: A Unified Library for Evaluation of Large Language Models",
+    "ground_truth_chunk_ids": [
+      "promptbench:0018:ed91319ec25c"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

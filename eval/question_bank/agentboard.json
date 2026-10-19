@@ -1,0 +1,62 @@
+[
+  {
+    "query": "AgentBoard 的核心贡献是什么？",
+    "answer": "AgentBoard 是一个面向 LLM 智能体分析式评估的综合基准与开源评估框架，提供细粒度进度率指标和全面的评估工具包。",
+    "chunk_id": "agentboard:0001:24b8f190aea8",
+    "support_quote": "we introduce AGENTBOARD, a pioneering comprehensive benchmark and accompanied open-source evaluation framework tailored to analytical evaluation of LLM agents",
+    "paper_id": "agentboard",
+    "title": "AgentBoard: An Analytical Evaluation Board of Multi-turn LLM Agents",
+    "ground_truth_chunk_ids": [
+      "agentboard:0001:24b8f190aea8"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "AgentBoard 如何衡量中间状态模糊的任务的进度？",
+    "answer": "AgentBoard 将总目标分解为子目标序列，并引入离散匹配分数来评估中间状态与已定义子目标的接近程度。",
+    "chunk_id": "agentboard:0024:245389aabdfc",
+    "support_quote": "We mitigate this by introducing a discrete matching score to assess how closely intermediate states align with defined subgoals",
+    "paper_id": "agentboard",
+    "title": "AgentBoard: An Analytical Evaluation Board of Multi-turn LLM Agents",
+    "ground_truth_chunk_ids": [
+      "agentboard:0024:245389aabdfc"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "AgentBoard 的评估工具包支持哪些分析功能？",
+    "answer": "该工具包支持细粒度进度率跟踪、难易样本性能分解、各子技能表现、长程交互评估、grounding 准确率和轨迹等分析与可视化。",
+    "chunk_id": "agentboard:0009:c9a6b6b462d5",
+    "support_quote": "supports analysis and visualization on fine-grained progress rates tracking, performance breakdown for hard and easy examples, detailed performance across various sub-skills, long-range interaction assessment, grounding accuracy, and trajectory",
+    "paper_id": "agentboard",
+    "title": "AgentBoard: An Analytical Evaluation Board of Multi-turn LLM Agents",
+    "ground_truth_chunk_ids": [
+      "agentboard:0009:c9a6b6b462d5"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "在 AgentBoard 中，进度率相比成功率有什么优势？",
+    "answer": "进度率能区分成功率相近的模型，并且较少受智能体特定特征（如未能生成 finish 动作）的影响。",
+    "chunk_id": "agentboard:0040:67d67d7cb40b",
+    "support_quote": "progress rate is often able to differentiate models that have similar success rates",
+    "paper_id": "agentboard",
+    "title": "AgentBoard: An Analytical Evaluation Board of Multi-turn LLM Agents",
+    "ground_truth_chunk_ids": [
+      "agentboard:0040:67d67d7cb40b"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "AgentBoard 如何定义任务中的难易样本？",
+    "answer": "AgentBoard 根据子目标数量划分难易：子目标数量超过截止值的问题被视为困难问题。",
+    "chunk_id": "agentboard:0080:99fb4f1955f2",
+    "support_quote": "problems with a larger number of subgoals than cutoff are viewed as hard",
+    "paper_id": "agentboard",
+    "title": "AgentBoard: An Analytical Evaluation Board of Multi-turn LLM Agents",
+    "ground_truth_chunk_ids": [
+      "agentboard:0080:99fb4f1955f2"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

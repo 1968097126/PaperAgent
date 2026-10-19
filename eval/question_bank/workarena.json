@@ -1,0 +1,62 @@
+[
+  {
+    "query": "WorkArena 的核心贡献是什么？",
+    "answer": "WorkArena 提出了一个基于 ServiceNow 平台、包含 33 个任务和 19,912 个唯一任务实例的企业相关任务基准，用于评估网页智能体。",
+    "chunk_id": "workarena:0007:163e97accf6b",
+    "support_quote": "WorkArena: A realistic benchmark of enterprise-related tasks for web agents comprising 19,912 unique task instances",
+    "paper_id": "workarena",
+    "title": "WorkArena: How Capable Are Web Agents at Solving Common Knowledge Work Tasks?",
+    "ground_truth_chunk_ids": [
+      "workarena:0007:163e97accf6b"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "WorkArena 中的任务如何验证智能体是否完成了目标？",
+    "answer": "WorkArena 使用验证函数提供实时反馈，识别从轻微错误（如未填必填字段）到严重错误（如向数据库推送无效数据）的问题；同时使用手工编写的 oracle 函数作为自动完成任务的基准。",
+    "chunk_id": "workarena:0016:3978af0b2b91",
+    "support_quote": "The validation functions offer real-time feedback to agents, identifying errors ranging from minor (e.g., unfilled mandatory fields) to critical (such as pushing invalid data to the database).",
+    "paper_id": "workarena",
+    "title": "WorkArena: How Capable Are Web Agents at Solving Common Knowledge Work Tasks?",
+    "ground_truth_chunk_ids": [
+      "workarena:0016:3978af0b2b91"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "WorkArena 在评估智能体时给每个任务设置的最大步数是多少？",
+    "answer": "在所有任务中，智能体每个回合最多允许 15 步。",
+    "chunk_id": "workarena:0041:603044d215d3",
+    "support_quote": "Max step: In all tasks we give our agents a maximum of 15 steps per episode, as in He et al. (2024).",
+    "paper_id": "workarena",
+    "title": "WorkArena: How Capable Are Web Agents at Solving Common Knowledge Work Tasks?",
+    "ground_truth_chunk_ids": [
+      "workarena:0041:603044d215d3"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "WorkArena 上不同语言模型的表现差距如何？",
+    "answer": "在 WorkArena 上，GPT-4o 的成功率为 42.7%，而 Llama3 为 17.9%，说明不同模型之间存在明显性能差距。",
+    "chunk_id": "workarena:0044:2ff33a4dfbac",
+    "support_quote": "Llama3’s 17.9%. The performance disparity between LLMs is significantly more pronounced in WorkArena and WebArena than in MiniWoB",
+    "paper_id": "workarena",
+    "title": "WorkArena: How Capable Are Web Agents at Solving Common Knowledge Work Tasks?",
+    "ground_truth_chunk_ids": [
+      "workarena:0044:2ff33a4dfbac"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "WorkArena 的消融实验发现了什么关于增加智能体特征的局限？",
+    "answer": "消融实验发现，增加更多特征并不总是更好：提示会变长，可能让较弱的模型（如 GPT-3.5 和 Llama3）不堪重负，甚至降低性能。",
+    "chunk_id": "workarena:0050:1f5449a4e435",
+    "support_quote": "More is not always better: As we gradually add more features, the prompt becomes longer and seems to overwhelm the LLM.",
+    "paper_id": "workarena",
+    "title": "WorkArena: How Capable Are Web Agents at Solving Common Knowledge Work Tasks?",
+    "ground_truth_chunk_ids": [
+      "workarena:0050:1f5449a4e435"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

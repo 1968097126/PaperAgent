@@ -70,7 +70,7 @@ class TestCitationValidation:
         assert result["valid_citations"] == ["c1", "c2"]
         assert result["citation_pairs"] == [("p1", "c1"), ("p2", "c2")]
 
-    def test_missing_unknown_duplicate_and_no_evidence_are_rejected(self):
+    def test_missing_unknown_and_no_evidence_are_rejected_but_reuse_is_valid(self):
         missing = validate_citations("unsupported answer", EVIDENCE)
         unknown = validate_citations("claim [p9/c9]", EVIDENCE)
         duplicate = validate_citations("a [p1/c1], b [p1/c1]", EVIDENCE)
@@ -81,8 +81,10 @@ class TestCitationValidation:
         assert duplicate["duplicates"] == [("p1", "c1")]
         assert "no evidence is available for a cited answer" in empty["errors"]
         assert all(
-            not result["valid"] for result in (missing, unknown, duplicate, empty)
+            not result["valid"] for result in (missing, unknown, empty)
         )
+        assert duplicate["valid"]
+        assert duplicate["citations"] == ["c1"]
 
     def test_malformed_or_duplicate_evidence_is_reported_not_trusted(self):
         malformed = [{"paper_id": "p1"}, EVIDENCE[0], dict(EVIDENCE[0])]

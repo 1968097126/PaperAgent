@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import pytest
 
-import retrieval.hybrid_v2 as hybrid_module
+import retrieval.hybrid_search as hybrid_module
 from retrieval.config import RetrievalConfig
-from retrieval.fuse_v2 import reciprocal_rank_fusion
-from retrieval.hybrid_v2 import HybridSearcher
-from retrieval.rerank_v2 import rerank
+from retrieval.fuse import reciprocal_rank_fusion
+from retrieval.hybrid_search import HybridSearcher
+from retrieval.rerank import rerank
 
 
 def test_rrf_deduplicates_within_each_ranking_and_is_deterministic():

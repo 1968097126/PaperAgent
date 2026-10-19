@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from pipeline.memory import MEMORY_MODES, ResearchMemory
-from retrieval.chunking_v2 import load_chunks
+from retrieval.chunking import load_chunks
 from retrieval.config import RetrievalConfig
 from retrieval.manifest import index_status
 

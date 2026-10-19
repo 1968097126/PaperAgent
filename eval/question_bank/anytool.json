@@ -1,0 +1,62 @@
+[
+  {
+    "query": "AnyTool 的核心贡献是什么？",
+    "answer": "AnyTool 是一个基于 GPT-4 函数调用能力、无需训练外部模块的 LLM 智能体，它结合分层结构的 API 检索器、求解器和自反思机制，利用 Rapid API 的 16,000 多个 API 来回答用户查询；当初始方案不可行时，自反思机制会重新激活 AnyTool。",
+    "chunk_id": "anytool:0001:bb3f34880ca8",
+    "support_quote": "AnyTool primarily incorporates three elements: an API retriever with a hierarchical structure, a solver aimed at resolving user queries using a selected set of API candidates, and a self-reflection mechanism",
+    "paper_id": "anytool",
+    "title": "AnyTool: Self-Reflective, Hierarchical Agents for Large-Scale API Calls",
+    "ground_truth_chunk_ids": [
+      "anytool:0001:bb3f34880ca8"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "AnyTool 的 API 检索器如何利用 Rapid API 的分层结构来组织搜索？",
+    "answer": "Rapid API 将 16K+ API 分为三层：类别层、工具层和单个 API 层；AnyTool 的 API 检索器据此构建分层结构，从而显著缩小每个智能体的搜索范围，并克服 LLM 最大上下文长度的限制。",
+    "chunk_id": "anytool:0009:755da8f13941",
+    "support_quote": "Rapid API into our hierarchical structure. Consequently, this significantly reduces the search scope for each agent and overcomes constraints related to the maximum context length in LLMs.",
+    "paper_id": "anytool",
+    "title": "AnyTool: Self-Reflective, Hierarchical Agents for Large-Scale API Calls",
+    "ground_truth_chunk_ids": [
+      "anytool:0009:755da8f13941"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "AnyTool 在评估协议方面指出了 ToolLLM 的什么问题？",
+    "answer": "AnyTool 指出 ToolLLM 的评估协议存在重大缺陷：如果 API 检索器选出与查询完全无关的候选，GPT-4 可能把所有查询都判为“non-solvable”，从而在查询实际未解决的情况下人为抬高通过率；实验显示随机选择候选时通过率被虚高到 99.0%。",
+    "chunk_id": "anytool:0020:24df67cba15d",
+    "support_quote": "If the API retriever selects candidates completely unrelated to the user’s query, GPT-4 may classify all queries as “non- 4 solvable”, leading to an artificially high pass rate, despite the queries remaining unsolved.",
+    "paper_id": "anytool",
+    "title": "AnyTool: Self-Reflective, Hierarchical Agents for Large-Scale API Calls",
+    "ground_truth_chunk_ids": [
+      "anytool:0020:24df67cba15d"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "AnyTool 在 ToolBench 上的主要结果如何？",
+    "answer": "AnyTool 在平均通过率上显著优于原始 ToolLLM 和使用参考 API 的 GPT-4，分别高出 +32.6 和 +19.3 个百分点。",
+    "chunk_id": "anytool:0041:92f88757f0d2",
+    "support_quote": "our AnyTool significantly outperforms both the original ToolLLM and GPT-4 using reference APIs, by +32.6 and +19.3 points, respectively, in terms of the average pass rate.",
+    "paper_id": "anytool",
+    "title": "AnyTool: Self-Reflective, Hierarchical Agents for Large-Scale API Calls",
+    "ground_truth_chunk_ids": [
+      "anytool:0041:92f88757f0d2"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "AnyTool 在消融实验中用什么替代 DFSDT，结果如何？",
+    "answer": "消融实验用 CoT 替代 DFSDT，从而关闭 DFSDT 的回溯功能；结果显示改用 CoT 后通过率分别下降 8.4 和 2.9，说明分层结构和自反思特性都对 AnyTool 的性能有显著正面影响。",
+    "chunk_id": "anytool:0044:295d799c648c",
+    "support_quote": "ubstituting the DFSDT algorithm with CoT, thereby disabling the backtracking feature in DFSDT. Our findings demonstrate significant positive effects of both the hierarchical structure and the self-reflection feature on AnyTool’s performance.",
+    "paper_id": "anytool",
+    "title": "AnyTool: Self-Reflective, Hierarchical Agents for Large-Scale API Calls",
+    "ground_truth_chunk_ids": [
+      "anytool:0044:295d799c648c"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

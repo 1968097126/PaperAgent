@@ -1,0 +1,62 @@
+[
+  {
+    "query": "DS-Agent 的核心贡献是什么？",
+    "answer": "DS-Agent 是一个新颖的自动框架，结合 LLM 智能体与基于案例的推理（CBR），用于自动化数据科学任务；它包含开发阶段和低资源部署阶段。",
+    "chunk_id": "dsagent:0001:528a8b8a7dde",
+    "support_quote": "we present DS-Agent, a novel automatic framework that harnesses LLM agent and case-based reasoning (CBR)",
+    "paper_id": "dsagent",
+    "title": "DS-Agent: Automated Data Science by Empowering Large Language Models with Case-Based Reasoning",
+    "ground_truth_chunk_ids": [
+      "dsagent:0001:528a8b8a7dde"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "DS-Agent 在开发阶段如何利用执行反馈来调整检索到的案例？",
+    "answer": "DS-Agent 采用 ReviseRank 步骤，将检索到的 top-k 案例交给 LLM，根据上一轮迭代的执行反馈对这些案例按估计效用进行降序排列。",
+    "chunk_id": "dsagent:0021:35b800557b25",
+    "support_quote": "We then prompt LLMs to generate the permutation of theses cases in descending order of their estimated utility for the current data science task, as informed by the feedback from the last iteration.",
+    "paper_id": "dsagent",
+    "title": "DS-Agent: Automated Data Science by Empowering Large Language Models with Case-Based Reasoning",
+    "ground_truth_chunk_ids": [
+      "dsagent:0021:35b800557b25"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "DS-Agent 在开发阶段使用 GPT-4 时，在 12 个任务上的成功率是多少？",
+    "answer": "在开发阶段，DS-Agent 配合 GPT-4 在 12 个任务上达到了 100% 的成功率。",
+    "chunk_id": "dsagent:0010:56a5bf6291ae",
+    "support_quote": "During the development stage, DS-Agent with GPT-4 achieves 100% success rate across 12 tasks.",
+    "paper_id": "dsagent",
+    "title": "DS-Agent: Automated Data Science by Empowering Large Language Models with Case-Based Reasoning",
+    "ground_truth_chunk_ids": [
+      "dsagent:0010:56a5bf6291ae"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "DS-Agent 的消融实验显示，去掉 CBR 后平均最佳排名变成多少？",
+    "answer": "在 12 个开发任务上，DS-Agent 的平均最佳排名为 2.08，而去掉 CBR 的变体平均最佳排名为 3.41。",
+    "chunk_id": "dsagent:0036:1b741346de69",
+    "support_quote": "GPT-4 Average Best Rank DS-Agent 2.08 DS-Agent w/o ReviseRank 2.58 DS-Agent w/o CBR 3.41",
+    "paper_id": "dsagent",
+    "title": "DS-Agent: Automated Data Science by Empowering Large Language Models with Case-Based Reasoning",
+    "ground_truth_chunk_ids": [
+      "dsagent:0036:1b741346de69"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "DS-Agent 在部署阶段相比开发阶段能降低多少成本？",
+    "answer": "部署阶段单次运行成本为 GPT-3.5 的 $0.0045 和 GPT-4 的 $0.1350，相比开发阶段成本降低超过 90%。",
+    "chunk_id": "dsagent:0044:0f6cb239a0ca",
+    "support_quote": "in the deployment stage, DS-Agent incurs costs of $0.0045 and $0.1350 for a single run with GPT-3.5 and GPT-4, respectively. This represents a substantial cost reduction of over 90%",
+    "paper_id": "dsagent",
+    "title": "DS-Agent: Automated Data Science by Empowering Large Language Models with Case-Based Reasoning",
+    "ground_truth_chunk_ids": [
+      "dsagent:0044:0f6cb239a0ca"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

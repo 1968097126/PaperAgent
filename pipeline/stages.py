@@ -209,7 +209,8 @@ class GuardrailsStage:
         if self.max_input_chars <= 0:
             raise ValueError("max_input_chars must be positive")
 
-    def run(self, user_message: str, memory: Mapping[str, Any]) -> dict[str, Any]:
+    def run(self, user_message: str, memory: Mapping[str, Any],
+            history: Sequence[Mapping[str, Any]] = ()) -> dict[str, Any]:
         message = (user_message or "").strip()
         if not message:
             return {"action": "clarify", "reason": "empty input", "source": "rule"}
@@ -239,6 +240,7 @@ class GuardrailsStage:
             "action and reason fields. Guardrails handles obvious malformed, injection, and coarse domain "
             "boundaries; NLU retains out_of_scope as a semantic fallback.\n"
             f"Verified memory: {json.dumps(dict(memory), ensure_ascii=False, sort_keys=True, default=str)}\n"
+            f"Recent dialogue (context only): {json.dumps(list(history[-6:]), ensure_ascii=False, default=str)}\n"
             f"Request: {message}"
         )
         try:
@@ -315,6 +317,11 @@ class NLUStage:
         prompt = (
             "Classify exactly one intent: new_search, follow_up, clarification, meta, or out_of_scope. "
             "Resolve references using ONLY the current user message, supplied history, and verified memory. "
+            "resolved_references must contain the RESOLVED entity names, never pronouns such as it, this paper, "
+            "它, 该方法, or 这篇论文. When the history supplies a full paper title, copy that full title exactly "
+            "into both resolved_references and standalone_query. The standalone query must make sense without "
+            "reading the dialogue: replace references to earlier papers with their titles and retain the specific "
+            "question topic. Do not add unsupported facts. If a reference cannot be resolved, use clarification. "
             "Return ONLY JSON with intent, standalone_query, resolved_references, needs_retrieval, reason, "
             "constraints, and comparison_targets. new_search/follow_up require retrieval; all other intents do not. "
             "Use exact source phrases for every declared reference, constraint, and comparison target, and preserve "
@@ -923,15 +930,15 @@ def validate_citations(
         errors.append("answer has no evidence citation")
     if invalid:
         errors.append(f"unknown citations: {invalid}")
-    if duplicates:
-        errors.append(f"duplicate citations: {duplicates}")
+    # One source can support several paragraphs; keep repetitions as diagnostics only.
+    unique_matches = list(dict.fromkeys(matches))
     return {
         "valid": not errors,
-        "citations": [chunk_id for _, chunk_id in matches],
+        "citations": [chunk_id for _, chunk_id in unique_matches],
         "citation_pairs": matches,
         "valid_citations": [
             chunk_id
-            for paper_id, chunk_id in matches
+            for paper_id, chunk_id in unique_matches
             if (paper_id, chunk_id) in evidence_pairs
         ],
         "invalid": invalid,
@@ -1142,7 +1149,7 @@ class GenerateStage:
 
         repair_prompt = (
             "Repair the answer using ONLY the supplied evidence and exact citation tokens. "
-            "Remove unsupported claims, unknown citations, and duplicate citation occurrences. "
+            "Remove unsupported claims and unknown citations. Reusing valid citations is allowed. "
             "Return only the corrected answer text.\n"
             f"Validation errors: {json.dumps(validation['errors'], ensure_ascii=False)}\n"
             f"Evidence: {json.dumps(labelled, ensure_ascii=False, sort_keys=True)}\n"

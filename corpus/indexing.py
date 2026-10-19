@@ -5,16 +5,16 @@ import argparse
 import json
 from pathlib import Path
 
-from retrieval.chunking_v2 import build_all_chunks, build_chunks_from_source
+from retrieval.chunking import build_all_chunks, build_chunks_from_source
 from retrieval.config import RetrievalConfig
-from retrieval.dense_v2 import build_dense_index
+from retrieval.dense_index import build_dense_index
 from retrieval.manifest import (
     build_manifest,
     corpus_fingerprint,
     index_status,
     write_manifest,
 )
-from retrieval.sparse_v2 import build_bm25_index
+from retrieval.sparse_index import build_bm25_index
 
 
 def _portable_source(path: Path) -> str:

@@ -274,6 +274,7 @@ def cmd_save(args: str, state, _config) -> bool:
         "research_memory": state.research_memory,
         "memory_mode": state.memory_mode,
     }
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2, default=str))
     ok(f"Session saved to {path}")
     return True
@@ -444,6 +445,7 @@ def handle_slash(line: str, state, config) -> bool:
 # ── Input history setup ────────────────────────────────────────────────────
 
 def setup_readline(history_file: Path):
+    history_file.parent.mkdir(parents=True, exist_ok=True)
     try:
         readline.read_history_file(str(history_file))
     except FileNotFoundError:

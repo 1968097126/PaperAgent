@@ -1,16 +1,12 @@
-# ── Harness 本体依赖（沿用自 nano-claude-code） ──────────────────────────
-anthropic>=0.40.0      # Anthropic Claude API 客户端，providers.py 里 stream() 调用
-openai>=1.30.0         # OpenAI 兼容协议客户端；同时用来对接 Ollama/vLLM 等 OpenAI-compatible 端点
-httpx>=0.27.0          # tools.py 里 WebFetch/WebSearch 发 HTTP 请求用
-rich>=13.0.0           # nano_claude.py 里做终端 Markdown/高亮渲染
+# Agent harness and model providers
+anthropic>=0.40.0
+openai>=1.30.0
+httpx>=0.27.0
+rich>=13.0.0
 
-# ── 检索领域新增依赖（本次改造引入） ──────────────────────────────────────
-faiss-cpu>=1.8.0           # 稠密向量索引与近邻检索：retrieval/dense_index.py 用它给BGE-M3向量建IndexFlatIP/HNSW索引
-sentence-transformers>=3.0.0   # 一个库搞定两件事：
-                                #   1) SentenceTransformer("BAAI/bge-m3") 做稠密检索的query/chunk向量化
-                                #   2) CrossEncoder("BAAI/bge-reranker-base") 做精排阶段的Cross-Encoder重排序
-rank-bm25>=0.2.2           # BM25稀疏检索：纯Python实现，BM25Okapi(tokenized_corpus).get_scores(query_tokens)
-jieba>=0.42.1               # 中文分词器：语料库若含中文标题/摘要，BM25分词前先用jieba切词（英文部分用简单正则切分即可）
-pymupdf>=1.24.0             # 从下载下来的论文PDF里提取正文纯文本，按block坐标处理双栏排版乱序问题
-                             # （最初用的是pdfplumber，逐字符提取在双栏论文上信号太脏，换成PyMuPDF的
-                             #  block级提取后一并解决了双栏乱序和单词粘连两个问题，见build_corpus.py）
+# Paper extraction and hybrid retrieval
+pymupdf>=1.24.0
+faiss-cpu>=1.8.0
+sentence-transformers>=3.0.0
+rank-bm25>=0.2.2
+jieba>=0.42.1

@@ -1,0 +1,62 @@
+[
+  {
+    "query": "LATS 的核心贡献是什么？",
+    "answer": "LATS 是首个将语言模型在推理、行动和规划三方面能力统一起来的通用框架，它借助语言模型的上下文学习能力，把蒙特卡洛树搜索引入其中，并结合由语言模型驱动的价值函数与自我反思。",
+    "chunk_id": "lats:0001:2b643613bc7e",
+    "support_quote": "we introduce Language Agent Tree Search (LATS) – the first general framework that synergizes the capabilities of LMs in reasoning, acting, and planning",
+    "paper_id": "lats",
+    "title": "Language Agent Tree Search Unifies Reasoning, Acting, and Planning in Language Models",
+    "ground_truth_chunk_ids": [
+      "lats:0001:2b643613bc7e"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "LATS 在方法上如何把蒙特卡洛树搜索适配到语言智能体？",
+    "answer": "LATS 把预训练语言模型同时用作智能体、状态评估器和反馈生成器，并以文本作为各组件之间的接口，从而无需额外训练即可把规划适配到环境条件。",
+    "chunk_id": "lats:0026:d387fa642f73",
+    "support_quote": "LATS repurposes pθ as an agent, state evaluator, and feedback generator, leveraging the useful language representations of m",
+    "paper_id": "lats",
+    "title": "Language Agent Tree Search Unifies Reasoning, Acting, and Planning in Language Models",
+    "ground_truth_chunk_ids": [
+      "lats:0026:d387fa642f73"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "LATS 在 HotPotQA 评估中使用了多少条轨迹和多少个子节点？",
+    "answer": "在 HotPotQA 的消融实验中，LATS 使用 ReAct 作为基础提示，每步采样 n = 5 个子节点，并采样 k = 50 条轨迹。",
+    "chunk_id": "lats:0049:810fc443eaa6",
+    "support_quote": "We use ReAct as the base prompt and sample n = 5 children and k = 50 trajectories. LATS requires every component and operation for optimal performance.",
+    "paper_id": "lats",
+    "title": "Language Agent Tree Search Unifies Reasoning, Acting, and Planning in Language Models",
+    "ground_truth_chunk_ids": [
+      "lats:0049:810fc443eaa6"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "LATS 在 WebShop 上的结果与 ReAct 和 Reflexion 相比如何？",
+    "answer": "在 WebShop 上，LATS (ReAct) 的得分为 75.9、成功率为 38.0，高于 ReAct 的 53.8/28.0 和 Reflexion 的 64.2/35.0，并且在相同迭代次数下同时提升了得分和成功率。",
+    "chunk_id": "lats:0046:ae651460e1fc",
+    "support_quote": "For the same number of iterations, LATS improves both score and SR and surpasses RL-based training.",
+    "paper_id": "lats",
+    "title": "Language Agent Tree Search Unifies Reasoning, Acting, and Planning in Language Models",
+    "ground_truth_chunk_ids": [
+      "lats:0046:ae651460e1fc"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "LATS 论文指出的主要局限之一是什么？",
+    "answer": "LATS 的一个主要局限是：与 ReAct 或 Reflexion 等更简单的提示方法相比，它的计算成本更高，这可能限制其在某些场景中的实用性。",
+    "chunk_id": "lats:0055:64327070668c",
+    "support_quote": "First, it has a higher computational cost compared to simpler prompting methods like ReAct or Reflexion, which may limit its practicality in certain situatio",
+    "paper_id": "lats",
+    "title": "Language Agent Tree Search Unifies Reasoning, Acting, and Planning in Language Models",
+    "ground_truth_chunk_ids": [
+      "lats:0055:64327070668c"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

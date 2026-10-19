@@ -52,7 +52,7 @@ def _json(value) -> str:
 
 
 def _search(params: dict, runtime: dict) -> str:
-    from retrieval.hybrid_v2 import search_papers
+    from retrieval.hybrid_search import search_papers
     config = RetrievalConfig.from_mapping(runtime)
     results = search_papers(
         params["query"].strip(), params.get("top_k", config.result_top_k),
@@ -62,7 +62,7 @@ def _search(params: dict, runtime: dict) -> str:
 
 
 def _retrieve(params: dict, runtime: dict) -> str:
-    from retrieval.hybrid_v2 import retrieve_chunk
+    from retrieval.hybrid_search import retrieve_chunk
     result = retrieve_chunk(
         params["chunk_id"].strip(), params.get("context", 1),
         config=RetrievalConfig.from_mapping(runtime),
@@ -73,7 +73,7 @@ def _retrieve(params: dict, runtime: dict) -> str:
 
 
 def _rerank(params: dict, runtime: dict) -> str:
-    from retrieval.rerank_v2 import rerank
+    from retrieval.rerank import rerank
     candidates = params["candidates"]
     if not all(isinstance(item, dict) and {"chunk_id", "text"} <= set(item) for item in candidates):
         return "Error: each candidate must contain chunk_id and text"

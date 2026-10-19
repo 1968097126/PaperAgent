@@ -38,7 +38,7 @@ from eval.run_evaluation import (
     summarize_predictions,
     write_results,
 )
-from retrieval.chunking_v2 import write_chunks
+from retrieval.chunking import write_chunks
 from retrieval.config import RetrievalConfig
 
 
@@ -445,3 +445,10 @@ def test_status_counts_treats_missing_and_unknown_as_failures() -> None:
         "unevaluable": 0,
     }
     assert rows == original
+
+
+def test_hit_rate_and_fractional_recall_are_distinct():
+    metrics = recall_at_k([{"status": "ok", "ground_truth_chunk_ids": ["a", "b"],
+                            "retrieved_chunk_ids": ["a"]}], (5,))
+    assert metrics["hit@5"] == 1.0
+    assert metrics["fractional_recall@5"] == 0.5

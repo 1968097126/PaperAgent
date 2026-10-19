@@ -92,10 +92,10 @@ PROVIDERS: dict[str, dict] = {
     "deepseek": {
         "type":       "openai",
         "api_key_env": "DEEPSEEK_API_KEY",
-        "base_url":   "https://api.deepseek.com/v1",
+        "base_url":   "https://api.deepseek.com",
         "context_limit": 64000,
         "models": [
-            "deepseek-v4-flash", "deepseek-v4-pro", "deepseek-v4-flash-vision-exp",
+            "deepseek-flash", "deepseek-v4-flash", "deepseek-v4-pro", "deepseek-v4-flash-vision-exp",
         ],
     },
     "ollama": {
@@ -442,9 +442,11 @@ def stream_openai_compat(
             else "max_tokens"
         )
         kwargs[token_parameter] = config["max_tokens"]
-    if model.startswith(("gpt-5", "gpt-6")):
+    if model.startswith(("gpt-5", "gpt-6", "deepseek-")):
         kwargs["stream_options"] = {"include_usage": True}
-    if model.startswith("deepseek-v4-"):
+    if "temperature" in config and not config.get("thinking"):
+        kwargs["temperature"] = float(config["temperature"])
+    if model.startswith("deepseek-v4-") or model == "deepseek-flash":
         thinking_enabled = bool(config.get("thinking", False))
         kwargs["extra_body"] = {
             "thinking": {"type": "enabled" if thinking_enabled else "disabled"}

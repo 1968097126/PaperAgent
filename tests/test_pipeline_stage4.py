@@ -11,12 +11,12 @@ from agent import AgentState
 from pipeline.client import NativeProviderClient
 from pipeline.orchestrator import STAGE_NAMES, ResearchPipeline
 from providers import AssistantTurn, TextChunk
-from retrieval.chunking_v2 import build_chunks_from_source
+from retrieval.chunking import build_chunks_from_source
 from retrieval.config import RetrievalConfig
-from retrieval.dense_v2 import build_dense_index, search_dense
-from retrieval.hybrid_v2 import HybridSearcher
+from retrieval.dense_index import build_dense_index, search_dense
+from retrieval.hybrid_search import HybridSearcher
 from retrieval.manifest import build_manifest, write_manifest
-from retrieval.sparse_v2 import build_bm25_index
+from retrieval.sparse_index import build_bm25_index
 
 EVIDENCE = {
     "chunk_id": "c1",
@@ -380,8 +380,8 @@ def test_small_real_index_pipeline_smoke(tmp_path, monkeypatch) -> None:
             for index, (chunk_id, _) in enumerate(pairs[:top_k])
         ]
 
-    monkeypatch.setattr("retrieval.hybrid_v2.search_dense", indexed_dense)
-    monkeypatch.setattr("retrieval.hybrid_v2.rerank", deterministic_rerank)
+    monkeypatch.setattr("retrieval.hybrid_search.search_dense", indexed_dense)
+    monkeypatch.setattr("retrieval.hybrid_search.rerank", deterministic_rerank)
     searcher = HybridSearcher(config)
     expected = searcher.search("policy", top_k=2)
     first = expected[0]

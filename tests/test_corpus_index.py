@@ -5,12 +5,12 @@ from pathlib import Path
 
 import numpy as np
 
-from retrieval.chunking_v2 import build_chunks_for_paper, build_chunks_from_source
+from retrieval.chunking import build_chunks_for_paper, build_chunks_from_source
 from retrieval.config import RetrievalConfig
 from retrieval.corpus import load_local_corpus
-from retrieval.dense_v2 import build_dense_index, load_dense_index, search_dense
+from retrieval.dense_index import build_dense_index, load_dense_index, search_dense
 from retrieval.manifest import build_manifest, index_status, write_manifest
-from retrieval.sparse_v2 import (
+from retrieval.sparse_index import (
     build_bm25_index,
     load_bm25_index,
     search_sparse,

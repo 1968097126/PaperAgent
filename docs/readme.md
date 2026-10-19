@@ -1,1 +1,0 @@
-nano claude code demo

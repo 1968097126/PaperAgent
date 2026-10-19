@@ -1,0 +1,62 @@
+[
+  {
+    "query": "Reflexion 的核心贡献是什么？",
+    "answer": "Reflexion 提出了一种不通过更新模型权重、而是通过语言反馈来强化语言智能体的框架：智能体会对任务反馈信号进行口头反思，并把反思文本保存在情节记忆缓冲区中，以在后续试验中引导更好的决策。",
+    "chunk_id": "reflexion:0001:ec12c97af578",
+    "support_quote": "We propose Reflexion, a novel framework to reinforce language agents not by updating weights, but instead through linguistic feedback.",
+    "paper_id": "reflexion",
+    "title": "Reflexion: language agents with verbal reinforcement learning",
+    "ground_truth_chunk_ids": [
+      "reflexion:0001:ec12c97af578"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "Reflexion 的模块化框架由哪三个模型组成？",
+    "answer": "Reflexion 的模块化框架包含三个模型：生成文本和动作的 Actor、为 Actor 输出打分的 Evaluator，以及生成口头强化线索以帮助 Actor 自我改进的 Self-Reflection 模型。",
+    "chunk_id": "reflexion:0015:a0e645fa3499",
+    "support_quote": "We develop a modular formulation for Reflexion, utilizing three distinct models: an Actor, denoted as Ma, which generates text and actions; an Evaluator model, represented by Me, that scores the outputs produced by Ma; and a Self-Reflection model, denoted as Msr, which generates verbal reinforcement cues to assist the Actor in self-improvement.",
+    "paper_id": "reflexion",
+    "title": "Reflexion: language agents with verbal reinforcement learning",
+    "ground_truth_chunk_ids": [
+      "reflexion:0015:a0e645fa3499"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "Reflexion 在哪些任务和基准上进行了实验评估？",
+    "answer": "Reflexion 在决策、推理和代码生成任务上评估，具体包括 HotPotQA 的搜索式问答、AlfWorld 的多步家庭环境任务，以及 HumanEval、MBPP 和 LeetcodeHard 的代码编写任务。",
+    "chunk_id": "reflexion:0023:0aff8df33722",
+    "support_quote": "We evaluate various natural language RL setups on decision-making, reasoning, and code generation tasks. Specifically, we challenge an agent to perform search-based question answering on HotPotQA [28], multi-step tasks in common household environments in AlfWorld [24], and code writing tasks in competition-like environments with interpreters and compilers in HumanEval [6], MBPP [2], and LeetcodeHard, a new benchmark.",
+    "paper_id": "reflexion",
+    "title": "Reflexion: language agents with verbal reinforcement learning",
+    "ground_truth_chunk_ids": [
+      "reflexion:0023:0aff8df33722"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "Reflexion 在 AlfWorld 上的实验结果如何？",
+    "answer": "ReAct + Reflexion 在 134 个 AlfWorld 任务中完成了 130 个，显著优于 ReAct；而仅使用 ReAct 时，性能提升在第 6 到第 7 次试验之间就停止了。",
+    "chunk_id": "reflexion:0026:f5a69af9f4c7",
+    "support_quote": "ReAct + Reflexion significantly outperforms ReAct by completing 130 out of 134 tasks using the simple heuristic to detect hallucinations and inefficient planning. Further, ReAct + Reflexion learns to solve additional tasks by learning in 12 consecutive trials. In the ReAct-only approach, we see that performance increase halts between trials 6 and 7.",
+    "paper_id": "reflexion",
+    "title": "Reflexion: language agents with verbal reinforcement learning",
+    "ground_truth_chunk_ids": [
+      "reflexion:0026:f5a69af9f4c7"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "Reflexion 有哪些局限性？",
+    "answer": "Reflexion 的局限包括依赖 LLM 的自我评估能力或启发式方法，并且没有成功的形式化保证；此外，它在 WebShop 这类需要大量多样性和探索的任务上无法取得进展。",
+    "chunk_id": "reflexion:0051:adefab309731",
+    "support_quote": "We conclude that Reflexion is unable to solve tasks that require a significant amount of diversity and exploration.",
+    "paper_id": "reflexion",
+    "title": "Reflexion: language agents with verbal reinforcement learning",
+    "ground_truth_chunk_ids": [
+      "reflexion:0051:adefab309731"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

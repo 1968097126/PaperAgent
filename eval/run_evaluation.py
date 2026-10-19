@@ -41,7 +41,7 @@ from pipeline.orchestrator import ResearchPipeline
 from pipeline.stages import GuardrailsStage, NLUStage
 from providers import detect_provider
 from retrieval.config import RetrievalConfig
-from retrieval.hybrid_v2 import HybridSearcher
+from retrieval.hybrid_search import HybridSearcher
 from retrieval.manifest import load_manifest
 
 RETRIEVAL_MODES = ("dense", "hybrid", "hybrid_rerank")
@@ -212,7 +212,7 @@ def run_boundary(client: Any, data_dir: Path) -> list[dict[str, Any]]:
     for row in read_jsonl(Path(data_dir) / "B.jsonl"):
         before = _token_snapshot(client)
         try:
-            result = stage.run(row["query"], {})
+            result = stage.run(row["query"], {}, row.get("history", []))
             predictions.append(
                 {
                     "id": row["id"],

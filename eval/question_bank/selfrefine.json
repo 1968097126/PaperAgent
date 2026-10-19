@@ -1,0 +1,62 @@
+[
+  {
+    "query": "Self-Refine 的核心贡献是什么？",
+    "answer": "Self-Refine 的核心贡献是提出一种无需监督训练数据、额外训练或强化学习的方法：先用同一个大语言模型生成初始输出，再由该模型对自己的输出提供反馈并据此迭代改进，从而提升初始输出质量。",
+    "chunk_id": "selfrefine:0001:e2f98a8ad482",
+    "support_quote": "SELF-REFINE does not require any supervised training data, additional training, or reinforcement learning, and instead uses a single LLM as the generator, refiner, and feedback provider.",
+    "paper_id": "selfrefine",
+    "title": "Self-Refine: Iterative Refinement with Self-Feedback",
+    "ground_truth_chunk_ids": [
+      "selfrefine:0001:e2f98a8ad482"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "Self-Refine 在评估中使用了哪些指标？",
+    "answer": "Self-Refine 报告三类指标：任务特定指标（如数学推理的求解率、代码优化的程序优化百分比）、以 GPT-4 作为人类偏好代理的 GPT-4-pref，以及人类偏好指标 human-pref。",
+    "chunk_id": "selfrefine:0019:ede3d887d5b2",
+    "support_quote": "We report three types of metrics: • Task specific metric: When available, we use automated metrics from prior work (Math Reasoning: % solve rate; Code Optimization: % programs optimized%).",
+    "paper_id": "selfrefine",
+    "title": "Self-Refine: Iterative Refinement with Self-Feedback",
+    "ground_truth_chunk_ids": [
+      "selfrefine:0019:ede3d887d5b2"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "Self-Refine 中反馈质量对结果有什么影响？",
+    "answer": "具体、可操作的反馈很重要：没有可操作反馈时，模型往往重复相同输出或做无关修改；在 Acronym Generation 中，没有可操作反馈时即使迭代改进，性能也从 56.4 降到 48.0。",
+    "chunk_id": "selfrefine:0027:770745aaead6",
+    "support_quote": "Similarly, in Acronym Generation, without actionable feedback, performance drops from 56.4 to 48.0, even with iterative refinements.",
+    "paper_id": "selfrefine",
+    "title": "Self-Refine: Iterative Refinement with Self-Feedback",
+    "ground_truth_chunk_ids": [
+      "selfrefine:0027:770745aaead6"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "Self-Refine 在 Vicuna-13B 上的表现如何？",
+    "answer": "Vicuna-13B 能生成初始输出，但在改进过程中明显吃力：它无法稳定按所需格式生成反馈，即使给出 Oracle 或硬编码反馈，也常常不遵循改进提示，而是重复原输出或生成幻觉对话。",
+    "chunk_id": "selfrefine:0035:f13a8f84bd27",
+    "support_quote": "Specifically, Vicuna-13B was not able to consistently generate the feedback in the required format. Furthermore, even when provided with Oracle or hard-coded feedback, it often failed to adhere to the prompts for refinement.",
+    "paper_id": "selfrefine",
+    "title": "Self-Refine: Iterative Refinement with Self-Feedback",
+    "ground_truth_chunk_ids": [
+      "selfrefine:0035:f13a8f84bd27"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "Self-Refine 与强化学习类方法在是否更新模型参数上有何不同？",
+    "answer": "Self-Refine 不更新模型参数；而文中提到的强化学习方法需要更新模型参数。",
+    "chunk_id": "selfrefine:0043:fae76d3776b1",
+    "support_quote": "Second, these RL methods require updating the model’s parameters, unlike SELF-REFINE.",
+    "paper_id": "selfrefine",
+    "title": "Self-Refine: Iterative Refinement with Self-Feedback",
+    "ground_truth_chunk_ids": [
+      "selfrefine:0043:fae76d3776b1"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

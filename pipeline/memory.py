@@ -277,6 +277,7 @@ class ResearchMemory:
             "comparison_targets": list(self.comparison_targets),
             "unresolved_questions": list(self.unresolved_questions),
             "citations": list(self.citations),
+            "verified_facts": [dict(item) for item in self.verified_facts],
         }
 
     def estimated_tokens(self) -> int:

@@ -1,0 +1,62 @@
+[
+  {
+    "query": "RAP 这篇论文的核心贡献是什么？",
+    "answer": "RAP 提出了一个新的 LLM 推理框架，把 LLM 同时重新用作世界模型和推理智能体，并结合基于蒙特卡洛树搜索的原则性规划算法。",
+    "chunk_id": "rap:0001:fe32f4b74201",
+    "support_quote": "we propose a new LLM reasoning framework, Reasoning via Planning (RAP). RAP repurposes the LLM as both a world model and a reasoning agent",
+    "paper_id": "rap",
+    "title": "Reasoning with Language Model is Planning with World Model",
+    "ground_truth_chunk_ids": [
+      "rap:0001:fe32f4b74201"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "RAP 是如何把推理过程形式化为马尔可夫决策过程的？",
+    "answer": "RAP 把推理过程描述为马尔可夫决策过程：给定当前状态，LLM 作为推理智能体从生成分布中采样动作，再由世界模型预测下一状态。",
+    "chunk_id": "rap:0016:f9116a874acb",
+    "support_quote": "With the definition of state and action, the reasoning process can thus be described as a Markov decision process (MDP)",
+    "paper_id": "rap",
+    "title": "Reasoning with Language Model is Planning with World Model",
+    "ground_truth_chunk_ids": [
+      "rap:0016:f9116a874acb"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "RAP 在实验中主要使用哪个基础模型以及什么采样温度？",
+    "answer": "RAP 及其基线默认使用 LLaMA-33B 作为基础 LLM，采样温度为 0.8。",
+    "chunk_id": "rap:0029:c473eb4cadff",
+    "support_quote": "By default, we use the LLaMA-33B model (Touvron et al., 2023a) as the base LLM for both our methods and baselines, with a sampling temperature of 0.8.",
+    "paper_id": "rap",
+    "title": "Reasoning with Language Model is Planning with World Model",
+    "ground_truth_chunk_ids": [
+      "rap:0029:c473eb4cadff"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "RAP 在 GSM8k 上的准确率结果如何？",
+    "answer": "RAP(1) 达到 40.0% 准确率，RAP(10) 达到 48.6%，加上聚合后进一步提升到 51.6%。",
+    "chunk_id": "rap:0040:8fa31e6b545d",
+    "support_quote": "RAP(1) 40.0 RAP(10) 48.6 + aggr 51.6 Table 2: Results on GSM8k.",
+    "paper_id": "rap",
+    "title": "Reasoning with Language Model is Planning with World Model",
+    "ground_truth_chunk_ids": [
+      "rap:0040:8fa31e6b545d"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "RAP 这篇论文提到的主要局限是什么？",
+    "answer": "该工作主要使用冻结的 LLM，其能力可能受预训练限制；未来值得探索微调 LLM 以及结合外部工具。",
+    "chunk_id": "rap:0051:9fac698b55cd",
+    "support_quote": "In this work, we mainly focus on utilizing frozen LLMs, whose abilities might be bounded by the pre-training.",
+    "paper_id": "rap",
+    "title": "Reasoning with Language Model is Planning with World Model",
+    "ground_truth_chunk_ids": [
+      "rap:0051:9fac698b55cd"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

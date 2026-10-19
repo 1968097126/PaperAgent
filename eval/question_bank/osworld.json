@@ -1,0 +1,62 @@
+[
+  {
+    "query": "OSWorld 的核心贡献是什么？",
+    "answer": "OSWorld 是首个可扩展的真实计算机环境，用于多模态智能体，支持在 Ubuntu、Windows 和 macOS 的任意应用中完成开放式计算机任务的设置、交互学习和基于执行的评估，并据此构建了包含 369 个任务的基准。",
+    "chunk_id": "osworld:0001:93ce98448797",
+    "support_quote": "We introduce OSWORLD, the first-of-its-kind scalable real computer environment for multimodal agents, supporting task setup, interactive learning, and execution-based evaluation",
+    "paper_id": "osworld",
+    "title": "OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments",
+    "ground_truth_chunk_ids": [
+      "osworld:0001:93ce98448797"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "OSWorld 如何形式化定义自主数字智能体的任务？",
+    "answer": "OSWorld 将自主数字智能体任务形式化为目标增强的部分可观测马尔可夫决策过程（GA-POMDP），包含状态空间、观测空间、动作空间、转移函数、观测函数、奖励函数、折扣因子、初始状态分布、目标及目标分布等要素。",
+    "chunk_id": "osworld:0012:22ccbca6722f",
+    "support_quote": "An autonomous digital agent task can be formalized as a Goal-Augmented Partially Observable Markov Decision Process (GA-POMDP)",
+    "paper_id": "osworld",
+    "title": "OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments",
+    "ground_truth_chunk_ids": [
+      "osworld:0012:22ccbca6722f"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "OSWorld 基准中的任务是如何分布和统计的？",
+    "answer": "OSWorld 共包含 369 个任务（另有 43 个 Windows 任务用于分析），其中 268 个（72.6%）针对单一应用功能，101 个（27.4%）为工作流任务，30 个（8.1%）为不可行示例，84 个（22.8%）整合自相关数据集，并包含 302 个不同初始状态和 134 个不同评估脚本。",
+    "chunk_id": "osworld:0029:5449ecaec4aa",
+    "support_quote": "OSWORLD contains a total of 369 tasks (and an additional 43 tasks on Windows for analysis), with the majority (268 tasks or 72.6%) aiming at single application functionalities",
+    "paper_id": "osworld",
+    "title": "OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments",
+    "ground_truth_chunk_ids": [
+      "osworld:0029:5449ecaec4aa"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "在 OSWorld 上评估的 LLM/VLM 智能体整体成功率表现如何？",
+    "answer": "在基于无障碍树输入的设置中，GPT-4 的整体成功率为 12.24%，GPT-4o 为 11.36%，而 Mixtral-8x7B 仅为 2.98%，Llama-3-70B 为 1.61%，说明现有智能体在 OSWorld 上整体成功率较低。",
+    "chunk_id": "osworld:0036:b936a926b036",
+    "support_quote": "Mixtral-8x7B 12.50% 1.01% 4.79% 6.12% 0.09% 2.98% Llama-3-70B 4.17% 1.87% 2.71% 0.00% 0.93% 1.61%",
+    "paper_id": "osworld",
+    "title": "OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments",
+    "ground_truth_chunk_ids": [
+      "osworld:0036:b936a926b036"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "OSWorld 中智能体与人类在不同类型计算机任务上的表现有何差异？",
+    "answer": "智能体在 CLI 类任务上表现优于 GUI 类任务，多软件工作流任务成功率低于 5%，显著落后于单一软件任务；而人类表现在这 8 类任务上较为一致，围绕 70% 波动且偏差小于 5%。",
+    "chunk_id": "osworld:0039:c948f634ab57",
+    "support_quote": "Unlike agent performance, human performance is consistent across these 8 tasks, fluctuating around 70% with <5% deviation.",
+    "paper_id": "osworld",
+    "title": "OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments",
+    "ground_truth_chunk_ids": [
+      "osworld:0039:c948f634ab57"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

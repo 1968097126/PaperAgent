@@ -7,7 +7,7 @@ from agent import AgentState
 from nano_claude import cmd_clear, cmd_config, cmd_load, cmd_save, handle_slash, repl
 from pipeline.trace import TurnTrace
 from research_cli import corpus_payload, memory_payload, trace_payload
-from retrieval.chunking_v2 import write_chunks
+from retrieval.chunking import write_chunks
 
 EVIDENCE = {
     "chunk_id": "c1",

@@ -69,8 +69,7 @@ def _normalize(text: str) -> str:
 def _contains_requirement(output: str, requirement: str) -> bool:
     normalized_requirement = _normalize(requirement)
     return bool(
-        normalized_requirement
-        and f" {normalized_requirement} " in f" {output} "
+        normalized_requirement and f" {normalized_requirement} " in f" {output} "
     )
 
 
@@ -122,9 +121,12 @@ def recall_at_k(
 ) -> dict[str, Any]:
     """Return query-level hit recall: any relevant chunk in the first K is a hit."""
     k_values = tuple(dict.fromkeys(ks))
-    if not k_values or any(not isinstance(k, int) or isinstance(k, bool) or k <= 0 for k in k_values):
+    if not k_values or any(
+        not isinstance(k, int) or isinstance(k, bool) or k <= 0 for k in k_values
+    ):
         raise ValueError("ks must contain positive integers")
     totals = {k: 0 for k in k_values}
+    fractional_totals = {k: 0.0 for k in k_values}
     eligible: list[Mapping[str, Any]] = []
     adjusted: list[dict[str, Any]] = []
     for row in rows:
@@ -141,10 +143,21 @@ def recall_at_k(
         ranked = [str(item) for item in copy.get("retrieved_chunk_ids", [])]
         for k in k_values:
             totals[k] += bool(truth.intersection(ranked[:k]))
+            fractional_totals[k] += len(truth.intersection(ranked[:k])) / len(truth)
     coverage = _coverage(adjusted)
     return {
         **{
             f"recall@{k}": totals[k] / len(eligible) if eligible else None
+            for k in k_values
+        },
+        **{
+            f"hit@{k}": totals[k] / len(eligible) if eligible else None
+            for k in k_values
+        },
+        **{
+            f"fractional_recall@{k}": fractional_totals[k] / len(eligible)
+            if eligible
+            else None
             for k in k_values
         },
         **coverage,
@@ -209,7 +222,9 @@ def pipeline_success(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         details.append(
             {
                 "id": row.get("id"),
-                "success": not missing and all(bool(row[key]) for key in keys),
+                "success": not missing
+                and all(bool(row[key]) for key in keys)
+                and row.get("trace_status", "ok") == "ok",
                 "missing_components": missing,
             }
         )

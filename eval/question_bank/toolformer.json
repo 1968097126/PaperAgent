@@ -1,0 +1,62 @@
+[
+  {
+    "query": "Toolformer 的核心贡献是什么？",
+    "answer": "Toolformer 的核心贡献是提出一种让语言模型通过简单 API 以自监督方式自学使用外部工具的方法：模型学会决定调用哪些 API、何时调用、传入什么参数，以及如何把结果用于后续的 token 预测。",
+    "chunk_id": "toolformer:0001:3c577cb0e159",
+    "support_quote": "We introduce Toolformer, a model trained to decide which APIs to call, when to call them, what arguments to pass, and how to best incorporate the results into future token prediction.",
+    "paper_id": "toolformer",
+    "title": "Toolformer: Language Models Can Teach Themselves to Use Tools",
+    "ground_truth_chunk_ids": [
+      "toolformer:0001:3c577cb0e159"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "Toolformer 如何筛选出真正有用的 API 调用？",
+    "answer": "Toolformer 通过比较损失来判断：只有当同时提供 API 调用及其结果时，模型预测后续 token 的损失比不做调用或只提供调用输入时至少降低 τf，才保留该调用。",
+    "chunk_id": "toolformer:0015:90fb4bc87b63",
+    "support_quote": "Given a filtering threshold τf, we thus only keep API calls for which L− i −L+ i ≥τf holds, i.e., adding the API call and its result reduces the loss by at least τf",
+    "paper_id": "toolformer",
+    "title": "Toolformer: Language Models Can Teach Themselves to Use Tools",
+    "ground_truth_chunk_ids": [
+      "toolformer:0015:90fb4bc87b63"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "Toolformer 在下游任务上采用什么样的评估设置？",
+    "answer": "Toolformer 采用提示式的零样本设置：用自然语言指示模型解决每个任务，但不提供任何示例，以检验用户未预先指定工具用法时模型是否仍能工作。",
+    "chunk_id": "toolformer:0025:9a41e7031326",
+    "support_quote": "We evaluate on various downstream tasks considering a prompted zero-shot setup: Models are instructed to solve each task in natural language (see Appendix C), but we provide no examples.",
+    "paper_id": "toolformer",
+    "title": "Toolformer: Language Models Can Teach Themselves to Use Tools",
+    "ground_truth_chunk_ids": [
+      "toolformer:0025:9a41e7031326"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "Toolformer 在 LAMA 基准上的表现如何？",
+    "answer": "在 LAMA 上，Toolformer 明显优于最佳基线，分别提升 11.7、5.2 和 18.6 分，也明显超过规模大得多的 OPT (66B) 和 GPT-3 (175B)。",
+    "chunk_id": "toolformer:0029:a788e5cef6cf",
+    "support_quote": "Crucially, Toolformer clearly outperforms these baseline models, improving upon the best baseline by 11.7, 5.2 and 18.6 points, respectively. It also clearly outperforms OPT (66B) and GPT-3 (175B)",
+    "paper_id": "toolformer",
+    "title": "Toolformer: Language Models Can Teach Themselves to Use Tools",
+    "ground_truth_chunk_ids": [
+      "toolformer:0029:a788e5cef6cf"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "Toolformer 在样本效率方面有什么局限？",
+    "answer": "Toolformer 的方法对某些工具非常样本低效，例如处理超过一百万份文档只得到几千个对计算器 API 有用的调用示例。",
+    "chunk_id": "toolformer:0046:213b67422696",
+    "support_quote": "Depending on the tool, our method is also very sample-inefficient; for example, processing more than a million documents results in only a few thousand examples of useful calls to the calculator API.",
+    "paper_id": "toolformer",
+    "title": "Toolformer: Language Models Can Teach Themselves to Use Tools",
+    "ground_truth_chunk_ids": [
+      "toolformer:0046:213b67422696"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

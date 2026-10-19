@@ -23,7 +23,7 @@ from pipeline.stages import (
 )
 from pipeline.trace import Timer, TurnTrace
 from retrieval.config import RetrievalConfig
-from retrieval.hybrid_v2 import HybridSearcher
+from retrieval.hybrid_search import HybridSearcher
 
 if TYPE_CHECKING:
     from agent import AgentState
@@ -293,7 +293,7 @@ class ResearchPipeline:
             trace,
             "Guardrails",
             {"user_message": user_message, "memory": memory_context},
-            lambda: self.guardrails.run(user_message, memory_context),
+            lambda: self.guardrails.run(user_message, memory_context, history),
             guard_fallback,
         )
 
@@ -358,6 +358,10 @@ class ResearchPipeline:
             generated_fallback,
         )
 
+        # The final user-visible refusal takes precedence over Reflect's provisional answer.
+        final_action = "refuse" if generated.get("fallback") else reflection["action"]
+        memory_reflection = {**reflection, "action": final_action}
+
         memory_value = self._execute(
             trace,
             "Memory",
@@ -368,7 +372,7 @@ class ResearchPipeline:
                 nlu=nlu,
                 evidence=evidence,
                 generated=generated,
-                reflect=reflection,
+                reflect=memory_reflection,
                 traceable_context=history,
             ),
             memory.to_dict(),
@@ -424,7 +428,7 @@ class ResearchPipeline:
             answer=generated["answer"],
             citations=citations,
             intent=nlu["intent"],
-            action=reflection["action"],
+            action=final_action,
             evidence=evidence,
             trace=trace,
         )

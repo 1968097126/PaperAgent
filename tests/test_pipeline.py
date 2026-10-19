@@ -204,3 +204,19 @@ def test_memory_modes_and_compression_preserve_keys():
     assert compressed.entities == ["entity"]
     assert compressed.constraints == ["recent"]
     assert compressed.citations == ["c1"]
+
+
+def test_generation_refusal_overrides_provisional_answer_and_memory():
+    client = standard_client(Generate=["Unsupported answer", "Still no citation"])
+    state = AgentState()
+    result = ResearchPipeline(client=client, searcher=FakeSearcher()).run("method", state)
+    assert result.action == "refuse"
+    assert result.citations == []
+    assert "method" in state.research_memory["unresolved_questions"]
+
+
+def test_memory_context_contains_only_cited_facts():
+    memory = ResearchMemory(mode="on")
+    memory.update(user_message="method", nlu={}, evidence=[EVIDENCE], citations=["c1"])
+    assert memory.context()["verified_facts"] == memory.verified_facts
+    assert memory.context()["verified_facts"]

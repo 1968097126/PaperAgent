@@ -1,22 +1,26 @@
 {
-  "chunk_count": 1800,
+  "chunk_count": 1759,
   "chunk_size": 1000,
   "chunk_strategy": "sliding",
-  "corpus_fingerprint": "f2f14d379e51989749443ea4014b02b9cc2a6e9b8da4b1aa593f47037155c01d",
-  "created_at": "2026-09-03T15:49:32.759362+00:00",
+  "corpus_fingerprint": "1bd6c422690d97fb724582788711faf7ab1e67518fd0607c83e9bd833cf4b799",
+  "created_at": "2026-10-19T09:00:17.022185+00:00",
   "dense": {
     "dimension": 1024,
-    "vectors": 1800
+    "vectors": 1759
   },
   "dense_model": "BAAI/bge-m3",
   "index_version": 2,
+  "model_revisions": {
+    "BAAI/bge-m3": "5617a9f61b028005a4858fdac845db406aefb181",
+    "BAAI/bge-reranker-base": "2cfc18c9415c912f9d8155881c133215df768a70"
+  },
   "overlap": 200,
-  "paper_count": 30,
+  "paper_count": 20,
   "random_seed": 42,
   "reranker_model": "BAAI/bge-reranker-base",
   "source": "corpus/papers_meta.jsonl",
   "sparse": {
-    "documents": 1800,
-    "token_count": 271657
+    "documents": 1759,
+    "token_count": 259114
   }
 }

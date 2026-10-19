@@ -1,9 +1,12 @@
 """Configuration management for nano claude (multi-provider)."""
-import os
 import json
+import os
+import warnings
 from pathlib import Path
 
-CONFIG_DIR   = Path.home() / ".nano_claude"
+from local_env import load_local_env
+
+CONFIG_DIR   = Path(os.environ.get("NANOCC_CONFIG_DIR", Path.home() / ".nano_claude"))
 CONFIG_FILE  = CONFIG_DIR  / "config.json"
 HISTORY_FILE = CONFIG_DIR  / "input_history.txt"
 SESSIONS_DIR = CONFIG_DIR  / "sessions"
@@ -28,14 +31,14 @@ DEFAULTS = {
 
 
 def load_config() -> dict:
-    CONFIG_DIR.mkdir(exist_ok=True)
-    SESSIONS_DIR.mkdir(exist_ok=True)
+    # Reading configuration must also work in read-only environments and offline evaluation.
+    load_local_env()
     cfg = dict(DEFAULTS)
     if CONFIG_FILE.exists():
         try:
             cfg.update(json.loads(CONFIG_FILE.read_text()))
-        except Exception:
-            pass
+        except (OSError, ValueError, TypeError):
+            warnings.warn("Cannot read configuration; using defaults.", RuntimeWarning, stacklevel=2)
     # Backward-compat: legacy single api_key → anthropic_api_key
     if cfg.get("api_key") and not cfg.get("anthropic_api_key"):
         cfg["anthropic_api_key"] = cfg.pop("api_key")

@@ -1,0 +1,62 @@
+[
+  {
+    "query": "AgentBench 的核心贡献是什么？",
+    "answer": "AgentBench 提出了将 LLM 作为智能体进行评估的概念，并提供了一个包含 8 个不同环境、分为 3 种类型的综合基准，用于标准化评估。",
+    "chunk_id": "agentbench:0014:c532eac8626b",
+    "support_quote": "We introduce the concept of evaluating LLMs as agents and present AGENTBENCH, a comprehensive benchmark to standardize the evaluation. It defines eight distinct environments of 3 types",
+    "paper_id": "agentbench",
+    "title": "AgentBench: Evaluating LLMs as Agents",
+    "ground_truth_chunk_ids": [
+      "agentbench:0014:c532eac8626b"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "AgentBench 在评估时使用了什么样的推理策略？",
+    "answer": "AgentBench 使用最原始的思维链（CoT）来评估 LLM，不进行多次试验、重复生成或使用复杂策略。",
+    "chunk_id": "agentbench:0017:cb2577628fc3",
+    "support_quote": "we evaluate LLMs with the most primitive CoT in AGENTBENCH. Without multiple trials, repeated generations, or complicated strategies, CoT is the easiest, cheapest, and most common way",
+    "paper_id": "agentbench",
+    "title": "AgentBench: Evaluating LLMs as Agents",
+    "ground_truth_chunk_ids": [
+      "agentbench:0017:cb2577628fc3"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "AgentBench 如何解决复杂交互环境配置困难的问题？",
+    "answer": "AgentBench 将复杂环境中的任务封装进 Docker 镜像，并把每个任务细分为独立的工作单元，以保证环境隔离、避免冲突。",
+    "chunk_id": "agentbench:0032:b78243bc9d0a",
+    "support_quote": "we have implemented two key strategies. Firstly, we encapsulate tasks with complex environments into Docker images. Researchers can effortlessly utilize these images by mounting the code path and initiating the evaluation process with ease. Secondly, we have subdivided each task into separate workers, ensuring that the environments of these tasks remain isolated and free from conflicts.",
+    "paper_id": "agentbench",
+    "title": "AgentBench: Evaluating LLMs as Agents",
+    "ground_truth_chunk_ids": [
+      "agentbench:0032:b78243bc9d0a"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "AgentBench 的主要结果中，gpt-4 的表现如何？",
+    "answer": "gpt-4 在 AgentBench 的 8 个数据集中有 6 个表现最佳，并在 House Holding 上达到 78% 的成功率。",
+    "chunk_id": "agentbench:0039:1c4a145ec23e",
+    "support_quote": "gpt-4 presents the best performance on 6 out of 8 datasets in AGENTBENCH; on House Holding, it achieves a success rate of 78%, indicating its practical usability in this scenario.",
+    "paper_id": "agentbench",
+    "title": "AgentBench: Evaluating LLMs as Agents",
+    "ground_truth_chunk_ids": [
+      "agentbench:0039:1c4a145ec23e"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "AgentBench 分析中，任务失败最主要的原因是什么？",
+    "answer": "AgentBench 任务中最主要的失败原因是超出任务限制（Task Limit Exceeded），这反映出 LLM 在推理和决策能力上的不足。",
+    "chunk_id": "agentbench:0042:bfbb366a4223",
+    "support_quote": "The predominant failure cause in AGENTBENCH tasks is Task Limit Exceeded, revealing weak reasoning and decision-making abilities in LLMs.",
+    "paper_id": "agentbench",
+    "title": "AgentBench: Evaluating LLMs as Agents",
+    "ground_truth_chunk_ids": [
+      "agentbench:0042:bfbb366a4223"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

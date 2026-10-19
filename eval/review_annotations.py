@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from eval.datasets import DATASET_NAMES, read_jsonl, validate_datasets
-from retrieval.chunking_v2 import load_chunks
+from retrieval.chunking import load_chunks
 
 REVIEW_SCHEMA_VERSION = 1
 INDEPENDENT_DATASETS = ("M", "I", "R", "B")

@@ -1,0 +1,62 @@
+[
+  {
+    "query": "SWE-bench 的核心贡献是什么？",
+    "answer": "SWE-bench 是一个评估框架，包含从 12 个流行 Python 仓库的真实 GitHub issue 及对应 pull request 中收集的 2,294 个软件工程问题；给定代码库和问题描述，语言模型需要编辑代码库来解决该问题。",
+    "chunk_id": "swebench:0001:731f6599ee54",
+    "support_quote": "we introduce SWE-bench, an evaluation framework consisting of 2,294 software engineering problems drawn from real GitHub issues and corresponding pull requests across 12 popular Python repositories",
+    "paper_id": "swebench",
+    "title": "SWE-bench: Can Language Models Resolve Real-world Github Issues?",
+    "ground_truth_chunk_ids": [
+      "swebench:0001:731f6599ee54"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "SWE-bench 如何通过执行式过滤筛选任务实例？",
+    "answer": "对每个候选任务，先应用 PR 的测试内容并记录应用 PR 其他内容前后的测试结果，只保留至少有一个测试从失败变为通过的任务，同时过滤掉导致安装或运行时错误的实例。",
+    "chunk_id": "swebench:0009:53bb99434001",
+    "support_quote": "We filter out task instances without at least one test where its status changes from a fail to pass (henceforth referred to as fail-to-pass test). We also filter out instances that result in installation or runtime errors.",
+    "paper_id": "swebench",
+    "title": "SWE-bench: Can Language Models Resolve Real-world Github Issues?",
+    "ground_truth_chunk_ids": [
+      "swebench:0009:53bb99434001"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "SWE-bench 中 SWE-Llama 的训练数据是如何避免数据污染的？",
+    "answer": "训练数据从另外 37 个流行 Python 包仓库收集了 19,000 个 issue-PR 对，并且训练数据中的仓库集合与评估基准中的仓库不相交。",
+    "chunk_id": "swebench:0017:d107c76cf59c",
+    "support_quote": "To eliminate the risk of data contamination, the set of repositories in the training data is disjoint from those included in the evaluation benchmark.",
+    "paper_id": "swebench",
+    "title": "SWE-bench: Can Language Models Resolve Real-world Github Issues?",
+    "ground_truth_chunk_ids": [
+      "swebench:0017:d107c76cf59c"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "在 SWE-bench 的 BM25 检索设置下，各模型解决任务的比例分别是多少？",
+    "answer": "Claude 2 为 1.96%，ChatGPT-3.5 为 0.17%，GPT-4 为 0.00%，SWE-Llama 7b 为 0.70%，SWE-Llama 13b 为 0.70%。",
+    "chunk_id": "swebench:0024:273233cae1f9",
+    "support_quote": "Model % Resolved % Apply Claude 2 1.96 43.07 ChatGPT-3.5 0.17 26.33 GPT-4∗ 0.00 14.83 SWE-Llama 7b 0.70 51.74 SWE-Llama 13b 0.70 53.62",
+    "paper_id": "swebench",
+    "title": "SWE-bench: Can Language Models Resolve Real-world Github Issues?",
+    "ground_truth_chunk_ids": [
+      "swebench:0024:273233cae1f9"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "SWE-bench 的定性分析如何说明模型补丁与参考补丁在复杂度上的差异？",
+    "answer": "模型补丁虽然行数更少、修改文件更少，但把条件判断放进复杂且广泛使用的 HTTPAdapter 类，使其 Cyclomatic 复杂度从 3 升到 5；参考补丁更长，却修改逻辑更简单的函数并定义新的错误类型。",
+    "chunk_id": "swebench:0085:519385ebe682",
+    "support_quote": "the model’s edit places a conditional within a relatively complex and widely used HTTPAdapter class. This introduces two new potential execution outcomes, raising the Cyclomatic complexity of HTTPAdapter from 3 to 5",
+    "paper_id": "swebench",
+    "title": "SWE-bench: Can Language Models Resolve Real-world Github Issues?",
+    "ground_truth_chunk_ids": [
+      "swebench:0085:519385ebe682"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

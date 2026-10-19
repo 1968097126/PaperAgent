@@ -1,22 +1,14 @@
-# Evaluation data
+# 评测数据
 
-The five JSONL files in this directory are **synthetic evaluation annotations**
-generated deterministically from the repository's real corpus chunks. They are not
-human-labelled data and must not be described as such. Every retrieval target is a
-real `chunk_id` from `corpus/chunks.jsonl`; the strict validator rejects missing IDs,
-distribution drift, malformed records, and E rows that differ from their source M turn.
+| 文件 | 数量 | 用途 |
+| --- | --- | --- |
+| M.jsonl | 120 turns | 30 组四轮主对话 |
+| I.jsonl | 100 | 五类意图识别 |
+| R.jsonl | 100 | 检索命中率 |
+| B.jsonl | 55 | 边界路由 |
+| E.jsonl | 70 turns | 从主对话选出的端到端计分轮次 |
 
-Regenerate and validate with seed 42:
-
-```bash
-conda run -n nanocc python -m eval.run_evaluation \
-  --suite datasets --build-datasets --seed 42
-conda run -n nanocc python -m eval.validate_datasets \
-  --data-dir eval/data --chunks corpus/chunks.jsonl
-```
-
-Do not treat metrics on these synthetic annotations as human-reviewed benchmark
-results. Human review is a separate Phase 7 requirement. Generate the protected review
-package with `python -m eval.review_annotations export` and follow
-[`eval/review/README.md`](../review/README.md); exporting the package does not change
-this provenance declaration.
+1. 数据由真实全文支持的模型辅助问题构建，人工语义复核尚未完成；各子集有关联，不能当作独立泛化测试集。
+2. `python -m eval.validate_datasets` 检查数据结构及证据 ID，需要先建立论文索引。
+3. `python -m eval.build_research_data` 从 `eval/question_bank/` 中的固定题库重建数据。删除题库后再运行会重新调用模型，产生费用及不同的问题。
+4. 生成或校验人工复核表的方法见 [复核说明](../review/README.md)。实验口径见 [实验说明](../../docs/experiments.md)。

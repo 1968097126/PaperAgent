@@ -1,0 +1,62 @@
+[
+  {
+    "query": "A Survey on the Memory Mechanism of Large Language Model-based Agents 这篇综述的核心贡献是什么？",
+    "answer": "该综述系统回顾了LLM智能体的记忆机制，围绕“记忆是什么”“为什么需要记忆”以及“如何实现和评估记忆”三个关键问题展开，并指出这是该方向的首个综述。",
+    "chunk_id": "memorysurvey:0016:95a4664744cf",
+    "support_quote": "we discuss three key problems including: (1) what is the memory of LLM-based agents? (2) why do we need the memory in LLM-based agents? and (3) how to implement and evaluate the memory in LLM-based agents?",
+    "paper_id": "memorysurvey",
+    "title": "A Survey on the Memory Mechanism of Large Language Model-based Agents",
+    "ground_truth_chunk_ids": [
+      "memorysurvey:0016:95a4664744cf"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "A Survey on the Memory Mechanism of Large Language Model-based Agents 从哪三个维度讨论记忆模块的实现？",
+    "answer": "该综述从记忆来源、记忆形式和记忆操作三个维度讨论记忆模块的实现。",
+    "chunk_id": "memorysurvey:0051:38632098e6eb",
+    "support_quote": "we discuss the implementation of the memory module from three perspectives: memory sources, memory forms, and memory operations. Memory sources refer to where the memory contents come from.",
+    "paper_id": "memorysurvey",
+    "title": "A Survey on the Memory Mechanism of Large Language Model-based Agents",
+    "ground_truth_chunk_ids": [
+      "memorysurvey:0051:38632098e6eb"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "A Survey on the Memory Mechanism of Large Language Model-based Agents 中，主观评估记忆模块时最常关注的两个方面是什么？",
+    "answer": "主观评估中最常关注的两个方面是连贯性（Coherence）和比率（Ratio，原文在此处截断）。",
+    "chunk_id": "memorysurvey:0093:5ebf915f4ad6",
+    "support_quote": "the following two aspects are the most common perspectives leveraged to evaluate the memory module. Coherence. This aspect refers to whether the recalled memory is natural and suitable for the current context.",
+    "paper_id": "memorysurvey",
+    "title": "A Survey on the Memory Mechanism of Large Language Model-based Agents",
+    "ground_truth_chunk_ids": [
+      "memorysurvey:0093:5ebf915f4ad6"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "A Survey on the Memory Mechanism of Large Language Model-based Agents 提到长上下文记忆在实践中会带来哪些问题？",
+    "answer": "长上下文记忆会带来高计算成本与推理延迟、记忆长度超出预训练序列上限导致截断和信息丢失，以及推理中的偏差和不稳健性。",
+    "chunk_id": "memorysurvey:0065:a42f8aaba89f",
+    "support_quote": "the fast-growing long-context memory in practice results in high computational cost during LLM inference, due to the quadratic growth of the time complexity of attention computation with sequence length.",
+    "paper_id": "memorysurvey",
+    "title": "A Survey on the Memory Mechanism of Large Language Model-based Agents",
+    "ground_truth_chunk_ids": [
+      "memorysurvey:0065:a42f8aaba89f"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "A Survey on the Memory Mechanism of Large Language Model-based Agents 指出的一个局限和未来方向是什么？",
+    "answer": "该综述指出当前LLM智能体的记忆主要以文本形式存在，未来需要更多关于参数化记忆的进展，因为参数化记忆具有更高的信息密度。",
+    "chunk_id": "memorysurvey:0128:9832bf67b588",
+    "support_quote": "At present, the memory of LLM-based agents is predominantly in textual form, especially for contextual knowledge such as observation records, trial experiences, and textual knowledge databases.",
+    "paper_id": "memorysurvey",
+    "title": "A Survey on the Memory Mechanism of Large Language Model-based Agents",
+    "ground_truth_chunk_ids": [
+      "memorysurvey:0128:9832bf67b588"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

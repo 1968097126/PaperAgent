@@ -1,0 +1,62 @@
+[
+  {
+    "query": "Self-RAG 的核心贡献是什么？",
+    "answer": "Self-RAG 提出了一个通过检索与自我反思来提升语言模型质量与事实性的框架：它训练单个任意语言模型，使其按需自适应检索段落，并利用称为反思标记的特殊标记，对检索到的段落及自身生成内容进行生成与反思。",
+    "chunk_id": "selfrag:0001:7eb0c351270e",
+    "support_quote": "We introduce a new framework called Self-Reflective Retrieval-Augmented Generation (SELF-RAG) that enhances an LM’s quality and factuality through retrieval and self-reflection.",
+    "paper_id": "selfrag",
+    "title": "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection",
+    "ground_truth_chunk_ids": [
+      "selfrag:0001:7eb0c351270e"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "Self-RAG 在推理时如何决定是否需要检索？",
+    "answer": "对于每个输入及此前生成的文本，模型会解码一个检索标记来评估检索的效用；若不需要检索，模型就像标准语言模型一样预测下一段输出。",
+    "chunk_id": "selfrag:0015:d2112b71ebaa",
+    "support_quote": "For every x and preceding generation y<t, the model decodes a retrieval token to evaluate the utility of retrieval. If retrieval is not required, the model predicts the next output segment, as it does in a standard LM.",
+    "paper_id": "selfrag",
+    "title": "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection",
+    "ground_truth_chunk_ids": [
+      "selfrag:0015:d2112b71ebaa"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "Self-RAG 如何训练生成器模型以产生反思标记？",
+    "answer": "Self-RAG 利用检索模型和评论模型对原始输出进行增强，构造出精确模拟推理过程的监督数据；随后用常规语言模型目标训练最终生成器，使其在推理时无需依赖评论模型即可自行生成反思标记。",
+    "chunk_id": "selfrag:0019:120a3a0a67b3",
+    "support_quote": "Subsequently, we train the final generator model (M) using the conventional LM objective (Section 3.2.2) to enable M to generate reflection tokens by itself without relying on the critic at inference time.",
+    "paper_id": "selfrag",
+    "title": "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection",
+    "ground_truth_chunk_ids": [
+      "selfrag:0019:120a3a0a67b3"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "Self-RAG 在实验中与哪些模型比较，取得了怎样的整体结果？",
+    "answer": "Self-RAG 在六个任务上的实验表明，它显著优于参数更多、采用广泛 RAG 方法的预训练和指令微调语言模型，并在四个任务上优于检索增强的 ChatGPT。",
+    "chunk_id": "selfrag:0010:8ec53ae2d834",
+    "support_quote": "Empirical results on six tasks, including reasoning and long-form generation, demonstrate that SELFRAG significantly outperforms pre-trained and instruction-tuned LLMs that have more parameters and widely adopted RAG approaches with higher citation accuracy.",
+    "paper_id": "selfrag",
+    "title": "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection",
+    "ground_truth_chunk_ids": [
+      "selfrag:0010:8ec53ae2d834"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "Self-RAG 在训练数据规模方面有什么限制？",
+    "answer": "Self-RAG 的作者将训练数据规模限制在 150k，尽管结果显示进一步扩大训练数据可能带来进一步提升。",
+    "chunk_id": "selfrag:0054:2b3ff1f70e33",
+    "support_quote": "These results also indicate that further expanding the training data of SELF-RAG may lead to further improvements, although in this work we limit our training data size to 150k.",
+    "paper_id": "selfrag",
+    "title": "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection",
+    "ground_truth_chunk_ids": [
+      "selfrag:0054:2b3ff1f70e33"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]

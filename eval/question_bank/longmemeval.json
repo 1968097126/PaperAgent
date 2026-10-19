@@ -1,0 +1,62 @@
+[
+  {
+    "query": "LongMemEval 的核心贡献是什么？",
+    "answer": "LongMemEval 是一个综合基准，用于评估聊天助手的五项核心长期记忆能力：信息提取、多会话推理、时间推理、知识更新和拒答，包含 500 个精心策划的问题。",
+    "chunk_id": "longmemeval:0001:6c6523429f53",
+    "support_quote": "We introduce LONGMEMEVAL, a comprehensive benchmark designed to evaluate five core long-term memory abilities of chat assistants: information extraction, multi-session reasoning, temporal reasoning, knowledge updates, and abstention.",
+    "paper_id": "longmemeval",
+    "title": "LongMemEval: Benchmarking Chat Assistants on Long-Term Interactive Memory",
+    "ground_truth_chunk_ids": [
+      "longmemeval:0001:6c6523429f53"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "LongMemEval 如何为每个问题构建聊天历史？",
+    "answer": "LongMemEval 为每个问题编译一段连贯的用户-AI 聊天历史：采样无关会话，将证据会话随机插入中间，并为所有会话分配合理的时间戳。",
+    "chunk_id": "longmemeval:0028:cd83cec5d08a",
+    "support_quote": "Specifically, we sample a number of unrelated user-AI chat sessions, randomly insert the evidence sessions in the middle, and assign a plausible timestamp to all sessions.",
+    "paper_id": "longmemeval",
+    "title": "LongMemEval: Benchmarking Chat Assistants on Long-Term Interactive Memory",
+    "ground_truth_chunk_ids": [
+      "longmemeval:0028:cd83cec5d08a"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "LongMemEval 实验中主要使用了哪些模型和检索器？",
+    "answer": "实验主要研究 GPT-4o、Llama 3.1 70B Instruct 和 Llama 3.1 8B Instruct 三个 LLM，检索器选用 1.5B 的 Stella V5 稠密检索模型。",
+    "chunk_id": "longmemeval:0043:899c353b3b5f",
+    "support_quote": "We mainly study three LLMs: GPT-4o, Llama 3.1 70B Instruct, and Llama 3.1 8B Instruct3. For the retriever, we choose dense retrieval with the 1.5B Stella V5 model",
+    "paper_id": "longmemeval",
+    "title": "LongMemEval: Benchmarking Chat Assistants on Long-Term Interactive Memory",
+    "ground_truth_chunk_ids": [
+      "longmemeval:0043:899c353b3b5f"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "LongMemEval 中商业记忆增强聊天助手表现如何？",
+    "answer": "商业记忆增强聊天助手表现较弱：ChatGPT 和 Coze 相比直接用同一 LLM 离线阅读上下文，准确率大幅下降，其中以 GPT-4o 实例化的两者分别下降 37% 和 64%。",
+    "chunk_id": "longmemeval:0030:d2ba8b770f87",
+    "support_quote": "Specifically, ChatGPT and Coze instantiated with GPT-4o exhibits 37% and 64% performance drop, respectively.",
+    "paper_id": "longmemeval",
+    "title": "LongMemEval: Benchmarking Chat Assistants on Long-Term Interactive Memory",
+    "ground_truth_chunk_ids": [
+      "longmemeval:0030:d2ba8b770f87"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  },
+  {
+    "query": "LongMemEval 提出的时间感知查询扩展对检索效果有何提升？",
+    "answer": "时间感知索引与查询扩展在值取轮次时平均提升召回率 11.3%，值取会话时提升 6.8%，且在索引阶段应用键扩展时该提升保持一致。",
+    "chunk_id": "longmemeval:0049:7cae87ad2229",
+    "support_quote": "this simple design improves recall by an average of 11.3% when using rounds as the value and by 6.8% when using sessions as the value.",
+    "paper_id": "longmemeval",
+    "title": "LongMemEval: Benchmarking Chat Assistants on Long-Term Interactive Memory",
+    "ground_truth_chunk_ids": [
+      "longmemeval:0049:7cae87ad2229"
+    ],
+    "annotation_status": "model_assisted_source_span_checked_pending_human_review"
+  }
+]
